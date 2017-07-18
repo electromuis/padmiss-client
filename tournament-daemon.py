@@ -40,11 +40,13 @@ def poller(side, reader):
 
         if data:
             data = data.strip()
-            p = api.get_player(data)
-            if p:
-                current_players[side] = p['nickname']
-            else:
-                current_players[side] = None
+            current_players[side] = None
+            try:
+                p = api.get_player(data)
+                if p:
+                    current_players[side] = p['nickname']
+            except Exception as e:
+                print e
 
 
 current_players = {}

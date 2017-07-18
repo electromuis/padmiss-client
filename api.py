@@ -3,11 +3,6 @@
 import requests
 
 
-class Player(object):
-    def __init__(self, data):
-        self.nickname = data['nickname']
-
-
 class TournamentApi(object):
     def __init__(self, url):
         self.url = url
@@ -19,8 +14,10 @@ class TournamentApi(object):
         if len(matches) != 1:
             return None
 
-        return Player(matches[0])
+        return matches[0]
 
 
-api = TournamentApi('http://dhcp-194:3020/api')
-print api.get_player('0010546583')
+if __name__ == '__main__':
+    api = TournamentApi('http://localhost:3020/api')
+    p = api.get_player('0010546583')
+    print p.nickname

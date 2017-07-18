@@ -10,12 +10,13 @@ log.setLevel(logging.DEBUG)
 
 
 class RFIDReader(object):
-    def __init__(self, dev):
-        self.dev = dev
+    def __init__(self, **match):
+        self.dev = usb.core.find(**match)
         self.cfg = None
         self.intf = None
         self.detached = False
         self.last_pressed = set()
+        log.debug('Found device %s', repr(self.dev))
 
         self._find_intf()
 
@@ -26,14 +27,14 @@ class RFIDReader(object):
 
         try:
             log.debug('Setting BOOT protocol on %s', repr(self))
-            dev.ctrl_transfer(0b00100001, 0x0B, 0, self.intf.bInterfaceNumber, 0)
+            self.dev.ctrl_transfer(0b00100001, 0x0B, 0, self.intf.bInterfaceNumber, 0)
         except:
             self.release()
             raise
 
 
     def _find_intf(self):
-        for cfg in dev:
+        for cfg in self.dev:
             for intf in cfg:
                 if intf.bInterfaceClass == 3 and intf.bInterfaceSubClass == 1 and intf.bInterfaceProtocol == 1:
                     self.cfg = cfg
@@ -117,15 +118,18 @@ class RFIDReader(object):
             return 'Bus %d device %d' % (self.dev.bus, self.dev.address)
 
 
-dev = usb.core.find(bus=1, address=41)
-r = RFIDReader(dev)
+#  idVendor           0x08ff AuthenTec, Inc.
+#  idProduct          0x0009 
 
-print 'Starting read loop'
-try:
-    while True:
-        data = r.poll()
-        if data:
-            print 'poll result:'
-            print data
-finally:
-    r.release()
+if __name__ == '__main__':
+    r = RFIDReader(idVendor=0x08ff, idProduct=0x0009)
+
+    print 'Starting read loop'
+    try:
+        while True:
+            data = r.poll()
+            if data:
+                print 'poll result:'
+                print data
+    finally:
+        r.release()

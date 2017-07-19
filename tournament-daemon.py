@@ -28,10 +28,16 @@ class ScoreUpload(Resource):
     parser.add_argument('stepstype', required=True)
     parser.add_argument('stepsdata', required=True)
     parser.add_argument('duration', required=True)
+    parser.add_argument('percent', required=True)
+    parser.add_argument('side', required=True)
+    parser.add_argument('judgements', required=True)
 
     def post(self):
         args = ScoreUpload.parser.parse_args(strict=True)
-        print args
+        for k, v in args.iteritems():
+            print k, '->', v
+
+        return '', 500
 
 
 def poller(side, reader):
@@ -50,7 +56,7 @@ def poller(side, reader):
 
 
 current_players = {}
-api = TournamentApi(config.url)
+api = TournamentApi(config.url, config.apikey)
 
 app = Flask(__name__)
 rest = Api(app)

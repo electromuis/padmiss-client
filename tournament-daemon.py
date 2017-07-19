@@ -11,6 +11,21 @@ from api import TournamentApi
 from hid import RFIDReader
 
 
+judgement_names = (
+    'fantastics',
+    'excellents',
+    'greats',
+    'decents',
+    'wayoffs',
+    'misses',
+    'holds',
+    'holdsTotal',
+    'minesHit',
+    'rolls',
+    'rollsTotal'
+)
+
+
 class CurrentPlayers(Resource):
     def get(self):
         return current_players
@@ -29,13 +44,36 @@ class ScoreUpload(Resource):
     parser.add_argument('stepsdata', required=True)
     parser.add_argument('duration', required=True)
     parser.add_argument('percent', required=True)
-    parser.add_argument('side', required=True)
+    parser.add_argument('side', choices=('Left', 'Right'), required=True)
     parser.add_argument('judgements', required=True)
 
     def post(self):
         args = ScoreUpload.parser.parse_args(strict=True)
-        for k, v in args.iteritems():
-            print k, '->', v
+        judgements = args['judgements'].split(',')
+        score_details = dict(zip(judgement_names, judgements))
+
+        if args['stepstype'] == 'dance-single':
+            mode = 'Single'
+        elif args['stepstype'] == 'dance-double':
+            mode = 'Double'
+        else:
+            raise ValueError('Invalid stepstype')
+
+        song_details = {
+            'title'           : args['title'],
+            'subTitle'        : args['subtitle'],
+            'artist'          : args['artist'],
+            'stepArtist'      : args['stepartist'],
+            'playMode'        : mode,
+            'cabSide'         : args['side'],
+            'hash'            : args['hash'],
+            'stepData'        : args['stepsdata'],
+            'meter'           : args['meter'],
+            'durationSeconds' : args['duration']
+        }
+
+        if api.post_score(args['player'], song_details, args['percent'], score_details):
+            return None
 
         return '', 500
 

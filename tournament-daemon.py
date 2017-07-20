@@ -33,7 +33,7 @@ class CurrentPlayers(Resource):
 
 class CabStatus(Resource):
     def get(self):
-        return current_players
+        return current_players, 200, {'Access-Control-Allow-Origin' : '*'}
 
 
 class ScoreUpload(Resource):

@@ -31,6 +31,11 @@ class CurrentPlayers(Resource):
         return current_players
 
 
+class CabStatus(Resource):
+    def get(self):
+        return current_players
+
+
 class ScoreUpload(Resource):
     parser = reqparse.RequestParser()
     parser.add_argument('hash', required=True)
@@ -101,6 +106,7 @@ rest = Api(app)
 
 rest.add_resource(CurrentPlayers, '/currentplayers')
 rest.add_resource(ScoreUpload, '/scoreupload')
+rest.add_resource(CabStatus, '/status')
 
 for side, lookup in config.readers.iteritems():
     current_players[side] = None
@@ -110,4 +116,4 @@ for side, lookup in config.readers.iteritems():
     thread.start()
 
 if __name__ == '__main__':
-    app.run()
+    app.run(host='0.0.0.0')

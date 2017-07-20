@@ -26,9 +26,10 @@ class TournamentApi(object):
         data = { 'apiKey' : self.key, 'player': player, 'scoreValue' : score }
         data.update(songinfo)
         data.update(details)
+        print 'upload score for', player
         r = requests.post(self.url + '/post-score', data=data)
         json = r.json()
-        print json
+        print json['message']
         return json['success']
 
 

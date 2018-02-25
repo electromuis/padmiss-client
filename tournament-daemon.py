@@ -1,119 +1,165 @@
 #!/usr/bin/env python
 
 import config
+from api import TournamentApi, ScoreBreakdown, Score, Song, ChartUpload
+from sm5_profile import generate_profile
+
+import os
+import shutil
+import logging
+import tempfile
 
 from threading import Thread
-
-from flask import Flask
-from flask_restful import Resource, Api, reqparse
-
-from api import TournamentApi
-from hid import RFIDReader
-
-
-judgement_names = (
-    'fantastics',
-    'excellents',
-    'greats',
-    'decents',
-    'wayoffs',
-    'misses',
-    'holds',
-    'holdsTotal',
-    'minesHit',
-    'rolls',
-    'rollsTotal'
-)
+from os import path
+from signal import pause
+from shutil import rmtree
+from time import sleep
+from xml.etree import ElementTree
 
 
-class CurrentPlayers(Resource):
-    def get(self):
-        return current_players
-
-
-class CabStatus(Resource):
-    def get(self):
-        return current_players, 200, {'Access-Control-Allow-Origin' : '*'}
-
-
-class ScoreUpload(Resource):
-    parser = reqparse.RequestParser()
-    parser.add_argument('hash', required=True)
-    parser.add_argument('meter', required=True)
-    parser.add_argument('title', required=True)
-    parser.add_argument('subtitle', required=True)
-    parser.add_argument('artist', required=True)
-    parser.add_argument('player', required=True)
-    parser.add_argument('stepartist', required=True)
-    parser.add_argument('stepstype', required=True)
-    parser.add_argument('stepsdata', required=True)
-    parser.add_argument('duration', required=True)
-    parser.add_argument('percent', required=True)
-    parser.add_argument('side', choices=('Left', 'Right'), required=True)
-    parser.add_argument('judgements', required=True)
-
-    def post(self):
-        args = ScoreUpload.parser.parse_args(strict=True)
-        judgements = args['judgements'].split(',')
-        score_details = dict(zip(judgement_names, judgements))
-
-        if args['stepstype'] == 'dance-single':
-            mode = 'Single'
-        elif args['stepstype'] == 'dance-double':
-            mode = 'Double'
-        else:
-            raise ValueError('Invalid stepstype')
-
-        song_details = {
-            'title'           : args['title'],
-            'subTitle'        : args['subtitle'],
-            'artist'          : args['artist'],
-            'stepArtist'      : args['stepartist'],
-            'playMode'        : mode,
-            'cabSide'         : args['side'],
-            'hash'            : args['hash'],
-            'stepData'        : args['stepsdata'],
-            'meter'           : args['meter'],
-            'durationSeconds' : args['duration']
-        }
-
-        if api.post_score(args['player'], song_details, args['percent'], score_details):
-            return None
-
-        return '', 500
+api = TournamentApi(config.url, config.apikey)
+log = logging.getLogger(__name__)
 
 
 def poller(side, reader):
+    last_data = None
     while True:
         data = reader.poll()
 
-        if data:
-            data = data.strip()
-            current_players[side] = None
+        try:
+            if data:
+                data = data.strip()
+                if data != last_data:
+                    last_data = data
+
+                    if path.isdir(side):
+                        rmtree(side)
+                    log.debug('Requesting player data for %s', data)
+                    p = api.get_player(data)
+                    if p:
+                        log.debug('Generating profile for %s to %s', p.nickname, side)
+                        generate_profile(path.join(side, config.profile_dir), p.nickname, p._id)
+        except Exception:
+            log.exception('Error getting player info from server')
+
+
+text_by_xpath = lambda parent, xpath: parent.find(xpath).text
+
+
+def xpath_items(root, items, mapper):
+    return { typ: mapper(text_by_xpath(root, path)) for typ, path in items.iteritems() }
+
+
+def parse_score(root):
+    tap_to_path = {
+        'fantastics' : 'TapNoteScores/W1',
+        'excellents' : 'TapNoteScores/W2',
+        'greats'     : 'TapNoteScores/W3',
+        'decents'    : 'TapNoteScores/W4',
+        'wayoffs'    : 'TapNoteScores/W5',
+        'misses'     : 'TapNoteScores/Miss',
+        'holds'      : 'RadarActual/RadarValues/Holds',
+        'holdsTotal' : 'RadarPossible/RadarValues/Holds',
+        'minesHit'   : 'RadarActual/RadarValues/Mines',
+        'rolls'      : 'RadarActual/RadarValues/Rolls',
+        'rollsTotal' : 'RadarPossible/RadarValues/Rolls'
+    }
+    breakdown = ScoreBreakdown(**xpath_items(root, tap_to_path, int))
+    score = Score(
+            scoreBreakdown=breakdown,
+            scoreValue=float(text_by_xpath(root, 'ScoreValue')),
+            passed=False
+            )
+    return score
+
+
+def parse_song(root):
+    inf_to_path = {
+        'title'                   : 'SongData/Title',
+        'titleTransliteration'    : 'SongData/TitleTranslit',
+        'subTitle'                : 'SongData/SubTitle',
+        'subTitleTransliteration' : 'SongData/SubTitleTranslit',
+        'artist'                  : 'SongData/Artist',
+        'artistTransliteration'   : 'SongData/ArtistTranslit',
+    }
+    song = Song(
+            durationSeconds=int(float(text_by_xpath(root, 'SongData/Duration'))),
+            **xpath_items(root, inf_to_path, lambda x: x)
+            )
+    return song
+
+
+def parse_playmode(root):
+    val = text_by_xpath(root, 'Steps/StepsType')
+    if val == 'dance-single':
+        return 'Single'
+    elif val == 'dance-double':
+        return 'Double'
+    else:
+        raise Exception('Unsupported steps type: ' + val)
+
+
+def parse_cabside(root):
+    val = int(text_by_xpath(root, 'PlayerNumber'))
+    if val == 0:
+        return 'Left'
+    elif val == 1:
+        return 'Right'
+    else:
+        raise Exception('Invalid player number: ' + val)
+
+
+def parse_upload(root):
+    upload = ChartUpload(
+            hash       = text_by_xpath(root, 'Steps/Hash'),
+            meter      = int(text_by_xpath(root, 'Steps/Meter')),
+            playMode   = parse_playmode(root),
+            stepData   = text_by_xpath(root, 'Steps/StepData'),
+            stepArtist = text_by_xpath(root, 'Steps/StepArtist'),
+            song       = parse_song(root),
+            score      = parse_score(root),
+            cabSide    = parse_cabside(root)
+            )
+    return upload
+
+
+def main():
+    logging.basicConfig(level=logging.DEBUG)
+
+    for side, init in config.readers.iteritems():
+        reader = init()
+        thread = Thread(target=poller, args=(side, reader))
+        thread.daemon = True
+        thread.start()
+
+    while True:
+        for n in os.listdir(config.scores_dir):
+            if not n.endswith('.xml'):
+                continue
+            fn = path.join(config.scores_dir, n)
             try:
-                p = api.get_player(data)
-                if p:
-                    current_players[side] = p['nickname']
-            except Exception as e:
-                print e
+                log.debug('Uploading score from ' + fn)
 
+                root = ElementTree.parse(fn).getroot()
+                upload = parse_upload(root)
+                playerGuid = text_by_xpath(root, 'PlayerGuid')
+                player = api.get_player(playerGuid)
+                if player:
+                    log.debug('Uploading score for ' + player.nickname + ': ' + repr(upload))
+                    api.post_score(player, upload)
+                else:
+                    log.warning('Player not found: ' + playerGuid)
 
-current_players = {}
-api = TournamentApi(config.url, config.apikey)
+            except:
+                log.exception('Failed to upload score')
+                backup = tempfile.mkstemp(suffix='.xml', prefix='failed_', dir=config.backup_dir)[1]
+                shutil.copy(fn, backup)
+                log.debug('Backed up failed score to ' + backup)
+                    
+            os.remove(fn)
 
-app = Flask(__name__)
-rest = Api(app)
+            sleep(1)
 
-rest.add_resource(CurrentPlayers, '/currentplayers')
-rest.add_resource(ScoreUpload, '/scoreupload')
-rest.add_resource(CabStatus, '/status')
-
-for side, lookup in config.readers.iteritems():
-    current_players[side] = None
-    reader = RFIDReader(**lookup)
-    thread = Thread(target=poller, args=(side, reader))
-    thread.daemon = True
-    thread.start()
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0')
+    main()

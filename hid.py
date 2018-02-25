@@ -4,9 +4,7 @@ import sys
 import usb
 import logging
 
-logging.basicConfig()
-log = logging.getLogger('rfid_reader')
-log.setLevel(logging.DEBUG)
+log = logging.getLogger(__name__)
 
 
 class RFIDReader(object):

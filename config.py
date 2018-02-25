@@ -1,7 +1,16 @@
-url = 'http://46.101.250.6:3020'
+from hid import RFIDReader
+from util import FIFOReader
+
+url = 'http://127.0.0.1:3020'
 apikey = 've324mkvvk4k'
 
+scores_dir = '/home/lonewolf/.stepmania-5.0/Save/Padmiss'
+
+backup_dir = '/tmp/kalakala'
+
+profile_dir = 'StepMania 5'
+
 readers = {
-    'Left' : { 'bus' : 4, 'port_number' : 2, 'idVendor' : 0x08ff, 'idProduct' : 0x0009 },
-    'Right' : { 'bus' : 4, 'port_number' : 3, 'idVendor' : 0x08ff, 'idProduct' : 0x0009 }
+#    '/tmp/p1' : lambda: RFIDReader(idVendor=0x08ff, idProduct=0x0009),
+    '/tmp/p1' : lambda: FIFOReader('/tmp/foo'),
 }

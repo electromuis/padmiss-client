@@ -35,7 +35,7 @@ def poller(side, reader):
                     if path.isdir(side):
                         rmtree(side)
                     log.debug('Requesting player data for %s', data)
-                    p = api.get_player(data)
+                    p = api.get_player(rfidUid=data)
                     if p:
                         log.debug('Generating profile for %s to %s', p.nickname, side)
                         generate_profile(path.join(side, config.profile_dir), p.nickname, p._id)

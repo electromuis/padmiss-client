@@ -60,7 +60,7 @@ def parse_score(root):
         'misses'     : 'TapNoteScores/Miss',
         'holds'      : 'RadarActual/RadarValues/Holds',
         'holdsTotal' : 'RadarPossible/RadarValues/Holds',
-        'minesHit'   : 'RadarActual/RadarValues/Mines',
+        'minesHit'   : 'TapNoteScores/HitMine',
         'rolls'      : 'RadarActual/RadarValues/Rolls',
         'rollsTotal' : 'RadarPossible/RadarValues/Rolls'
     }

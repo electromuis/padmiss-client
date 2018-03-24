@@ -158,7 +158,7 @@ def main():
                     
             os.remove(fn)
 
-            sleep(1)
+        sleep(1)
 
 
 if __name__ == '__main__':

@@ -72,14 +72,21 @@ class ChartUpload(Base):
 
 
     __fields__ = {
-        'hash'       : None,
-        'meter'      : None,
-        'playMode'   : None,
-        'stepData'   : None,
-        'stepArtist' : None,
-        'song'       : Song,
-        'score'      : Score,
-        'cabSide'    : None
+        'hash'          : None,
+        'meter'         : None,
+        'playMode'      : None,
+        'stepData'      : None,
+        'stepArtist'    : None,
+        'song'          : Song,
+        'score'         : Score,
+        'cabSide'       : None,
+        'speedMod'      : None,
+        'musicRate'     : None,
+        'modsTurn'      : None,
+        'modsTransform' : None,
+        'modsOther'     : None,
+        'noteSkin'      : None,
+        'perspective'   : None
     }
 
 

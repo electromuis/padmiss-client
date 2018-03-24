@@ -109,16 +109,49 @@ def parse_cabside(root):
         raise Exception('Invalid player number: ' + val)
 
 
+def parse_speedmod(root):
+    node = root.find('Mods/ScrollSpeed')
+    val = float(node.text)
+    typ = node.get('Type')
+    return dict(type=typ, value=val)
+
+
+def parse_mods(root, paths, conv):
+    mods = []
+    for p in paths:
+        container = root.find(p)
+        for mod in container:
+            mods.append(conv(mod))
+    return mods
+
+
+def parse_perspective(root):
+    return dict(
+        tilt=float(text_by_xpath(root, 'Mods/Perspectives/Tilt')),
+        skew=float(text_by_xpath(root, 'Mods/Perspectives/Skew')))
+
+
+conv_toggle_mod = lambda mod: mod.tag
+conv_float_mod = lambda mod: dict(name=mod.tag, value=float(mod.text))
+
+
 def parse_upload(root):
     upload = ChartUpload(
-            hash       = text_by_xpath(root, 'Steps/Hash'),
-            meter      = int(text_by_xpath(root, 'Steps/Meter')),
-            playMode   = parse_playmode(root),
-            stepData   = text_by_xpath(root, 'Steps/StepData'),
-            stepArtist = text_by_xpath(root, 'Steps/StepArtist'),
-            song       = parse_song(root),
-            score      = parse_score(root),
-            cabSide    = parse_cabside(root)
+            hash          = text_by_xpath(root, 'Steps/Hash'),
+            meter         = int(text_by_xpath(root, 'Steps/Meter')),
+            playMode      = parse_playmode(root),
+            stepData      = text_by_xpath(root, 'Steps/StepData'),
+            stepArtist    = text_by_xpath(root, 'Steps/StepArtist'),
+            song          = parse_song(root),
+            score         = parse_score(root),
+            cabSide       = parse_cabside(root),
+            speedMod      = parse_speedmod(root),
+            musicRate     = float(text_by_xpath(root, 'Mods/MusicRate')),
+            modsTurn      = parse_mods(root, ('Mods/Turns',), conv_toggle_mod),
+            modsTransform = parse_mods(root, ('Mods/Transforms',), conv_toggle_mod),
+            modsOther     = parse_mods(root, ('Mods/Accels', 'Mods/Effects', 'Mods/Appearances', 'Mods/Scrolls'), conv_float_mod),
+            noteSkin      = text_by_xpath(root, 'Mods/NoteSkin'),
+            perspective   = parse_perspective(root)
             )
     return upload
 

@@ -24,30 +24,40 @@ class Base(object):
                 )
 
 
-class Player(Base):
+class FlattenedBase(Base):
+    pass
+
+
+class Player(FlattenedBase):
     __fields__ = {
         'nickname' : None,
         '_id'      : None
     }
 
 
-class ScoreBreakdown(Base):
+class ScoreBreakdown(FlattenedBase):
     __fields__ = {
-        'fantastics' : None,
-        'excellents' : None,
-        'greats'     : None,
-        'decents'    : None,
-        'wayoffs'    : None,
-        'misses'     : None,
-        'holds'      : None,
-        'holdsTotal' : None,
-        'minesHit'   : None,
-        'rolls'      : None,
-        'rollsTotal' : None
+        'fantastics'   : None,
+        'excellents'   : None,
+        'greats'       : None,
+        'decents'      : None,
+        'wayoffs'      : None,
+        'misses'       : None,
+        'holds'        : None,
+        'holdsTotal'   : None,
+        'minesHit'     : None,
+        'minesAvoided' : None,
+        'minesTotal'   : None,
+        'rolls'        : None,
+        'rollsTotal'   : None,
+        'jumps'        : None,
+        'jumpsTotal'   : None,
+        'hands'        : None,
+        'handsTotal'   : None
     }
 
 
-class Score(Base):
+class Score(FlattenedBase):
     __fields__ = {
         'scoreBreakdown' : ScoreBreakdown,
         'scoreValue'     : None,
@@ -55,7 +65,7 @@ class Score(Base):
     }
 
 
-class Song(Base):
+class Song(FlattenedBase):
     __fields__ = {
         'title'                   : None,
         'titleTransliteration'    : None,
@@ -64,6 +74,19 @@ class Song(Base):
         'artist'                  : None,
         'artistTransliteration'   : None,
         'durationSeconds'         : None
+    }
+
+
+class TimingWindows(Base):
+    __fields__ = {
+        'fantasticTimingWindow' : None,
+        'excellentTimingWindow' : None,
+        'greatTimingWindow'     : None,
+        'decentTimingWindow'    : None,
+        'wayoffTimingWindow'    : None,
+        'mineTimingWindow'      : None,
+        'holdTimingWindow'      : None,
+        'rollTimingWindow'      : None
     }
 
 
@@ -86,7 +109,8 @@ class ChartUpload(Base):
         'modsTransform' : None,
         'modsOther'     : None,
         'noteSkin'      : None,
-        'perspective'   : None
+        'perspective'   : None,
+        'timingWindows' : TimingWindows
     }
 
 
@@ -127,8 +151,9 @@ class TournamentApi(object):
         }
         data.update(upload.score.scoreBreakdown.__dict__)
         data.update(upload.song.__dict__)
-        data.update({ k: v for k, v in upload.__dict__.iteritems() if not isinstance(v, Base)  })
-        r = requests.post(self.url + '/post-score', json={ k: v for k, v in data.iteritems() if v is not None })
+        data.update({ k: v for k, v in upload.__dict__.iteritems() if not isinstance(v, FlattenedBase)  })
+        dumpable = lambda v: v.__dict__ if isinstance(v, Base) else v
+        r = requests.post(self.url + '/post-score', json={ k: dumpable(v) for k, v in data.iteritems() if v is not None })
         j = r.json()
         if j['success'] != True:
             raise TournamentApiError(j['message'])

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import config
-from api import TournamentApi, ScoreBreakdown, Score, Song, ChartUpload
+from api import TournamentApi, ScoreBreakdown, Score, Song, ChartUpload, TimingWindows
 from sm5_profile import generate_profile
 
 import os
@@ -52,17 +52,23 @@ def xpath_items(root, items, mapper):
 
 def parse_score(root):
     tap_to_path = {
-        'fantastics' : 'TapNoteScores/W1',
-        'excellents' : 'TapNoteScores/W2',
-        'greats'     : 'TapNoteScores/W3',
-        'decents'    : 'TapNoteScores/W4',
-        'wayoffs'    : 'TapNoteScores/W5',
-        'misses'     : 'TapNoteScores/Miss',
-        'holds'      : 'RadarActual/RadarValues/Holds',
-        'holdsTotal' : 'RadarPossible/RadarValues/Holds',
-        'minesHit'   : 'TapNoteScores/HitMine',
-        'rolls'      : 'RadarActual/RadarValues/Rolls',
-        'rollsTotal' : 'RadarPossible/RadarValues/Rolls'
+        'fantastics'   : 'TapNoteScores/W1',
+        'excellents'   : 'TapNoteScores/W2',
+        'greats'       : 'TapNoteScores/W3',
+        'decents'      : 'TapNoteScores/W4',
+        'wayoffs'      : 'TapNoteScores/W5',
+        'misses'       : 'TapNoteScores/Miss',
+        'holds'        : 'RadarActual/RadarValues/Holds',
+        'holdsTotal'   : 'RadarPossible/RadarValues/Holds',
+        'minesHit'     : 'TapNoteScores/HitMine',
+        'minesAvoided' : 'TapNoteScores/AvoidMine',
+        'minesTotal'   : 'RadarPossible/RadarValues/Mines',
+        'rolls'        : 'RadarActual/RadarValues/Rolls',
+        'rollsTotal'   : 'RadarPossible/RadarValues/Rolls',
+        'jumps'        : 'RadarActual/RadarValues/Jumps',
+        'jumpsTotal'   : 'RadarPossible/RadarValues/Jumps',
+        'hands'        : 'RadarActual/RadarValues/Hands',
+        'handsTotal'   : 'RadarPossible/RadarValues/Hands'
     }
     breakdown = ScoreBreakdown(**xpath_items(root, tap_to_path, int))
     score = Score(
@@ -131,6 +137,20 @@ def parse_perspective(root):
         skew=float(text_by_xpath(root, 'Mods/Perspectives/Skew')))
 
 
+def parse_timing_windows(root):
+    window_to_path = {
+        'fantasticTimingWindow' : 'TimingWindows/W1',
+        'excellentTimingWindow' : 'TimingWindows/W2',
+        'greatTimingWindow'     : 'TimingWindows/W3',
+        'decentTimingWindow'    : 'TimingWindows/W4',
+        'wayoffTimingWindow'    : 'TimingWindows/W5',
+        'mineTimingWindow'      : 'TimingWindows/Mine',
+        'holdTimingWindow'      : 'TimingWindows/Hold',
+        'rollTimingWindow'      : 'TimingWindows/Roll'
+    }
+    return TimingWindows(**xpath_items(root, window_to_path, lambda x: float(x)))
+
+
 conv_toggle_mod = lambda mod: mod.tag
 conv_float_mod = lambda mod: dict(name=mod.tag, value=float(mod.text))
 
@@ -151,7 +171,8 @@ def parse_upload(root):
             modsTransform = parse_mods(root, ('Mods/Transforms',), conv_toggle_mod),
             modsOther     = parse_mods(root, ('Mods/Accels', 'Mods/Effects', 'Mods/Appearances', 'Mods/Scrolls'), conv_float_mod),
             noteSkin      = text_by_xpath(root, 'Mods/NoteSkin'),
-            perspective   = parse_perspective(root)
+            perspective   = parse_perspective(root),
+            timingWindows = parse_timing_windows(root)
             )
     return upload
 

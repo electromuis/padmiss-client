@@ -3,19 +3,29 @@
 import sys
 import usb
 import logging
+import time
 
 log = logging.getLogger(__name__)
 
 
 class RFIDReader(object):
     def __init__(self, **match):
-        self.dev = usb.core.find(**match)
+        self.match = match
+        result = self.connect()
+        if result == False:
+            raise RuntimeError('Not found')
+
+    def connect(self):
         self.cfg = None
         self.intf = None
         self.detached = False
         self.last_pressed = set()
-        log.debug('Found device %s', repr(self.dev))
+        self.dev = usb.core.find(**self.match)
 
+        if self.dev is None:
+            return False
+
+        log.debug('Found device %s', repr(self.dev))
         self._find_intf()
 
         if self.dev.is_kernel_driver_active(self.intf.bInterfaceNumber):
@@ -30,6 +40,7 @@ class RFIDReader(object):
             self.release()
             raise
 
+        return True
 
     def _find_intf(self):
         for cfg in self.dev:
@@ -41,6 +52,18 @@ class RFIDReader(object):
 
         raise RuntimeError('%s does not appear to be RFID reader' % repr(self))
 
+    def find(self):
+        result = False
+        while result == False:
+            time.sleep(5)
+            log.debug('Searching ...')
+            try:
+                self.release()
+                result = self.connect()
+            except usb.core.USBError as e:
+                result = False
+
+        log.debug('Found it again')
 
     def poll(self, initial_timeout = 200, key_timeout = 50):
         typed = []
@@ -81,6 +104,10 @@ class RFIDReader(object):
                 # Ignore timeouts, why isn't there a better way to do this in PyUSB?!
                 if e.errno == 110:
                     break
+		elif e.errno == 19 or e.errno == 5:
+                    log.debug("Disconnect err")
+                    self.find()
+                    return ''
                 else:
                     raise
 
@@ -104,9 +131,13 @@ class RFIDReader(object):
     def release(self):
         if self.detached:
             log.debug('Reattaching kernel driver to %s', repr(self))
-            usb.util.dispose_resources(dev)
-            dev.attach_kernel_driver(self.intf.bInterfaceNumber)
-            self.detached = False
+            usb.util.dispose_resources(self.dev)
+            try:
+                self.dev.attach_kernel_driver(self.intf.bInterfaceNumber)
+            except usb.core.USBError as e:
+                log.debug('Err unloading')
+            finally:
+                self.detached = False
 
 
     def __repr__(self):

@@ -5,6 +5,7 @@ from winusbpy import *
 import logging
 import time
 import binascii
+from pprint import pprint
 
 
 log = logging.getLogger(__name__)
@@ -12,7 +13,14 @@ log = logging.getLogger(__name__)
 
 class RFIDReader(object):
     def __init__(self, **match):
-        self.match = match
+        self.match = {}
+
+        if match.idVendor:
+            match.vid = "%x" % match.idVendor
+
+        if match.idProduct:
+            match.pid = "%x" % match.idProduct
+
         result = self.connect()
         if result == False:
             raise RuntimeError('Not found')
@@ -21,17 +29,15 @@ class RFIDReader(object):
         self.api = WinUsbPy()
 
         if self.api.list_usb_devices(deviceinterface=True, present=True) == False:
-            print('err1')
             return False
 
-        print(self.match)
-
         if self.api.init_winusb_device(**self.match) == False:
-            print('err2')
             return False
 
         print('Found device')
         self._find_intf()
+
+        pprint(self.api.device_paths)
 
         try:
             print('Setting BOOT protocol')

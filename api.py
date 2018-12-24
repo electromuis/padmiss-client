@@ -141,6 +141,12 @@ class TournamentApi(object):
             raise TournamentApiError(j['message'])
         return tuple((Score(**score) for score in j['highScores']))
 
+    def get_last_sore(self, playerId):
+        r = requests.get(self.url + '/api/scores?populate=player&sort=-playedAt&limit=1&player=%s' % playerId)
+        scores = r.json()
+        if len(scores) != 1:
+            return None
+        return scores[0]
 
     def post_score(self, player, upload):
         data = {

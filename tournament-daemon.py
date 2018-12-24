@@ -2,7 +2,7 @@
 
 import config
 from api import TournamentApi, ScoreBreakdown, Score, Song, ChartUpload, TimingWindows
-from sm5_profile import generate_profile
+from default_poller import poller
 
 import os
 import shutil
@@ -11,37 +11,13 @@ import tempfile
 
 from threading import Thread
 from os import path
-from signal import pause
-from shutil import rmtree
+
 from time import sleep
 from xml.etree import ElementTree
 
 
 api = TournamentApi(config.url, config.apikey)
 log = logging.getLogger(__name__)
-
-
-def poller(side, reader):
-    last_data = None
-    while True:
-        data = reader.poll()
-
-        try:
-            if data:
-                data = data.strip()
-                if data != last_data:
-                    last_data = data
-
-                    if path.isdir(side):
-                        rmtree(side)
-                    log.debug('Requesting player data for %s', data)
-                    p = api.get_player(rfidUid=data)
-                    if p:
-                        log.debug('Generating profile for %s to %s', p.nickname, side)
-                        generate_profile(path.join(side, config.profile_dir), p.nickname, p._id)
-        except Exception:
-            log.exception('Error getting player info from server')
-
 
 text_by_xpath = lambda parent, xpath: parent.find(xpath).text
 

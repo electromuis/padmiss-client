@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import requests
-
+import json
 
 class Base(object):
     __repr_suppress__ = set()
@@ -31,8 +31,19 @@ class FlattenedBase(Base):
 class Player(FlattenedBase):
     __fields__ = {
         'nickname' : None,
-        '_id'      : None
+        '_id'      : None,
+        'metaData' : None
     }
+
+    def getMeta(self, field):
+        if self.metaData == None:
+            return None
+
+        data = json.loads(self.metaData)
+        if data.has_key(field):
+            return data[field]
+
+        return None
 
 
 class ScoreBreakdown(FlattenedBase):

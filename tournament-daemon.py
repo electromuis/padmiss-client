@@ -2,7 +2,7 @@
 
 import config
 from api import TournamentApi, ScoreBreakdown, Score, Song, ChartUpload, TimingWindows
-from default_poller import poller
+from new_poller import poller
 
 import os
 import shutil
@@ -155,6 +155,7 @@ def parse_upload(root):
 
 def main():
     logging.basicConfig(level=logging.DEBUG)
+    log.debug('Hello')
 
     for side, init in config.readers.iteritems():
         reader = init()

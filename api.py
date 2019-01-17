@@ -9,7 +9,7 @@ class Base(object):
 
     def __init__(self, **kwargs):
         for k, c in self.__fields__.iteritems():
-            if not k in kwargs:
+            if not k in kwargs and kwargs[k] == None:
                 raise TournamentApiError('Required parameter \'%s\' missing' % k)
             val = kwargs[k]
             if c and isinstance(val, dict):
@@ -32,7 +32,7 @@ class Player(FlattenedBase):
     __fields__ = {
         'nickname' : None,
         '_id'      : None,
-        'metaData' : None
+	'metaData' : "{}"
     }
 
     def getMeta(self, field):

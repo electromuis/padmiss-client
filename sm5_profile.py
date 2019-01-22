@@ -7,6 +7,62 @@ import config
 from api import TournamentApi, ScoreBreakdown, Score, Song, ChartUpload, TimingWindows
 api = TournamentApi(config.url, config.apikey)
 
+class SLIni():
+	__fields__ = {
+		'JudgmentGraphic': "Love",
+		'Mini': "0%",
+		'BackgroundFilter': "Off",
+		'SpeedModType': "x",
+		'SpeedMod': "1.00",
+		'Vocalization': "None",
+		'NoteSkin': "",
+		'HideTargets': "false",
+		'HideSongBG': "false",
+		'HideCombo': "false",
+		'HideLifebar': "false",
+		'HideScore': "false",
+		'HideDanger': "true",
+		'ColumnFlashOnMiss': "false",
+		'SubtractiveScoring': "false",
+		'MeasureCounterPosition': "Left",
+		'MeasureCounter': "None",
+		'TargetStatus': "Disabled",
+		'TargetBar': 11,
+		'TargetScore': false,
+		'ReceptorArrowsPosition': "StomperZ",
+		'LifeMeterType': "Standard",
+	}
+
+	def write_string(self):
+		ret = "[Simply Love]\n"
+		for k,v in self.__fields__:
+			ret += k + ' ' + str(val) + "\n"
+	
+	def from_score(self, score):
+		if score['speedMod']['type'] == 'MaxBPM':
+			self.__fields__.SpeedModType = 'M'
+        if score['speedMod']['type'] == 'Multiplier':
+			self.__fields__.SpeedModType = 'X'
+        if score['speedMod']['type'] == 'ConstantBPM':
+			self.__fields__.SpeedModType = 'C'
+
+		speed = float(score['speedMod']['value'])
+		if speed > 0:
+			if self.__fields__.SpeedModType == 'C':
+				speed = int(speed * 100) / 100
+			else:
+				speed = int(speed)
+			self.__fields__.SpeedMod = str(speed)
+
+        if score['noteSkin']:
+			self.__fields__.NoteSkin = score['noteSkin']
+
+        for mod in score['modsOther']:
+            if mod['name'] == 'EFFECT_MINI':
+				value = int(mod['value'] * 100)
+				self.__fields__.Mini = str(value) + '%'
+		
+
 def generate_statsxml(player_name, player_guid, score):
 	stats = Element('Stats')
 	general = SubElement(stats, 'GeneralData')
@@ -36,26 +92,17 @@ DisplayName={displayname}
 	return ini_template.format(displayname=player_name)
 
 def generate_sl_ini(score):
-    file = '[Simply Love]\n=Nothing\nBackgroundFilter=Off\nColumnFlashOnMiss=false\nHideComboActionOnMissedTarget=false\nHideDanger=true\nHideLifebar=false\nHideScore=false\nHideSongBG=false\nHideTargets=false\nJudgmentGraphic=Love\nLifeMeterType=Standard\nMeasureCounter=None\nMeasureCounterPosition=Left\nReceptorArrowsPosition=StomperZ\nSubtractiveScoring=false\nTargetBar=11\nTargetScore=false\nTargetStatus=Disabled\nVocalization=None\n'
-    if score != None:
-        if score['speedMod']['type'] == 'MaxBPM':
-            file += 'SpeedMod=' + str(score['speedMod']['value']) + '\n'
-            file += 'SpeedModType=M\n'
-        if score['speedMod']['type'] == 'Multiplier':
-            file += 'SpeedMod=' + str(score['speedMod']['value']) + '\n'
-            file += 'SpeedModType=X\n'
-        if score['noteSkin']:
-            file += 'NoteSkin=' + score['noteSkin'] + '\n'
-        for mod in score['modsOther']:
-            if mod['name'] == 'EFFECT_MINI':
-                file += 'Mini=' + str(int(mod['value'] * 100)) + '%\n'
+    if score == None:
+		return None
+	ini = SLIni()
+	ini.from_score(score)
 
-    return file
+    return ini.write_string()
 
 def generate_profile(dirname, player_name, player_guid):
 	makedirs(dirname)
 
-        score = api.get_last_sore(player_guid)
+    score = api.get_last_sore(player_guid)
 
 	with open(path.join(dirname, 'Stats.xml'), 'w') as statsxml:
 		statsxml.write(tostring(generate_statsxml(player_name, player_guid, score)))
@@ -63,8 +110,10 @@ def generate_profile(dirname, player_name, player_guid):
 	with open(path.join(dirname, 'Editable.ini'), 'w') as editableini:
 		editableini.write(generate_editableini(player_name))
 
-        with open(path.join(dirname, 'Simply Love UserPrefs.ini'), 'w') as slini:
-                slini.write(generate_sl_ini(score))
+	ini = generate_sl_ini(score)
+	if ini != None:
+	    with open(path.join(dirname, 'Simply Love UserPrefs.ini'), 'w') as slini:
+            slini.write(ini)
 
 
 def parse_profile_scores(dirname):

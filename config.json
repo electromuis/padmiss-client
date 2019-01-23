@@ -1,0 +1,8 @@
+{
+    "url": "https://api.padmiss.com/",
+    "apikey": "INSERT API KEY HERE",
+    "scores_dir": "SM5 INSTALL LOCATION/Save/Padmiss",
+    "backup_dir": "./Backup",
+    "profile_dir": "StepMania 5",
+    "scanners": []
+}

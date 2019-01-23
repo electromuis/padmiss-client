@@ -28,7 +28,7 @@ class SLIni():
 		'MeasureCounter': "None",
 		'TargetStatus': "Disabled",
 		'TargetBar': 11,
-		'TargetScore': false,
+		'TargetScore': "false",
 		'ReceptorArrowsPosition': "StomperZ",
 		'LifeMeterType': "Standard",
 	}
@@ -36,14 +36,14 @@ class SLIni():
 	def write_string(self):
 		ret = "[Simply Love]\n"
 		for k,v in self.__fields__:
-			ret += k + ' ' + str(val) + "\n"
+			ret += k + ' ' + str(v) + "\n"
 	
 	def from_score(self, score):
 		if score['speedMod']['type'] == 'MaxBPM':
 			self.__fields__.SpeedModType = 'M'
-        if score['speedMod']['type'] == 'Multiplier':
+		if score['speedMod']['type'] == 'Multiplier':
 			self.__fields__.SpeedModType = 'X'
-        if score['speedMod']['type'] == 'ConstantBPM':
+		if score['speedMod']['type'] == 'ConstantBPM':
 			self.__fields__.SpeedModType = 'C'
 
 		speed = float(score['speedMod']['value'])
@@ -54,11 +54,11 @@ class SLIni():
 				speed = int(speed)
 			self.__fields__.SpeedMod = str(speed)
 
-        if score['noteSkin']:
+		if score['noteSkin']:
 			self.__fields__.NoteSkin = score['noteSkin']
 
-        for mod in score['modsOther']:
-            if mod['name'] == 'EFFECT_MINI':
+		for mod in score['modsOther']:
+			if mod['name'] == 'EFFECT_MINI':
 				value = int(mod['value'] * 100)
 				self.__fields__.Mini = str(value) + '%'
 		
@@ -68,18 +68,18 @@ def generate_statsxml(player_name, player_guid, score):
 	general = SubElement(stats, 'GeneralData')
 	SubElement(general, 'DisplayName').text = player_name
 	SubElement(general, 'Guid').text = player_guid
-        if score != None:
-            modifiers = SubElement(general, 'DefaultModifiers')
-            mods = []
-            if score['speedMod']['type'] == 'MaxBPM':
-                mods.append('m' + str(score['speedMod']['value']))
-            if score['speedMod']['type'] == 'Multiplier':
-                mods.append(str(score['speedMod']['value']) + 'x')
-            mods.append('Overhead')
-            if score['noteSkin']:
-                mods.append(score['noteSkin'])
-            SubElement(modifiers, 'dance').text = ', '.join(mods)
-	
+	if score != None:
+		modifiers = SubElement(general, 'DefaultModifiers')
+		mods = []
+		if score['speedMod']['type'] == 'MaxBPM':
+			mods.append('m' + str(score['speedMod']['value']))
+		if score['speedMod']['type'] == 'Multiplier':
+			mods.append(str(score['speedMod']['value']) + 'x')
+		mods.append('Overhead')
+		if score['noteSkin']:
+			mods.append(score['noteSkin'])
+		SubElement(modifiers, 'dance').text = ', '.join(mods)
+
 	return stats
 
 
@@ -92,17 +92,17 @@ DisplayName={displayname}
 	return ini_template.format(displayname=player_name)
 
 def generate_sl_ini(score):
-    if score == None:
+	if score == None:
 		return None
 	ini = SLIni()
 	ini.from_score(score)
 
-    return ini.write_string()
+	return ini.write_string()
 
 def generate_profile(dirname, player_name, player_guid):
 	makedirs(dirname)
 
-    score = api.get_last_sore(player_guid)
+	score = api.get_last_sore(player_guid)
 
 	with open(path.join(dirname, 'Stats.xml'), 'w') as statsxml:
 		statsxml.write(tostring(generate_statsxml(player_name, player_guid, score)))
@@ -112,8 +112,8 @@ def generate_profile(dirname, player_name, player_guid):
 
 	ini = generate_sl_ini(score)
 	if ini != None:
-	    with open(path.join(dirname, 'Simply Love UserPrefs.ini'), 'w') as slini:
-            slini.write(ini)
+		with open(path.join(dirname, 'Simply Love UserPrefs.ini'), 'w') as slini:
+			slini.write(ini)
 
 
 def parse_profile_scores(dirname):

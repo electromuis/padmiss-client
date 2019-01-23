@@ -6,20 +6,46 @@ import logging
 import time
 import binascii
 from pprint import pprint
-
+import _winreg
+import re
 
 log = logging.getLogger(__name__)
+
+def listDevices():
+    ret = []
+    api = WinUsbPy()
+
+    if api.list_usb_devices(deviceinterface=True, present=True) == False:
+        return ret
+
+    for path in api.device_paths:
+        pts = path.split('#')
+        pt = pts[2]
+        ids = pts[1].split('&')
+
+        reg = r"SYSTEM\\CurrentControlSet\\Enum\USB\\" + ids[0].upper() + "&" + ids[1].upper() + "\\" + pt
+        hKey = _winreg.OpenKey(_winreg.HKEY_LOCAL_MACHINE, reg)
+        result = _winreg.QueryValueEx(hKey, "LocationInformation")
+        if result:
+            result = result[0]
+
+            ids[0] = '0x' + ids[0].split('_')[1]
+            ids[1] = '0x' + ids[1].split('_')[1]
+
+            matchObj = re.match(r'Port_#0*(\d+)\.Hub_#0*(\d+)', result, re.I)
+            ret.append({'idVendor': ids[0], 'idProduct': ids[1], 'port_number': matchObj.group(1), 'hub_number': matchObj.group(2)})
+
+    return ret
 
 
 class RFIDReader(object):
     def __init__(self, **match):
-        self.match = {}
+        self.match = match
 
-        if match.idVendor:
-            match.vid = "%x" % match.idVendor
-
-        if match.idProduct:
-            match.pid = "%x" % match.idProduct
+        if self.match['idVendor']:
+            self.match['vid'] = "vid_" + ("%x" % match['idVendor']).zfill(4)
+        if self.match['idProduct']:
+            self.match['pid'] = "pid_" + ("%x" % match['idProduct']).zfill(4)
 
         result = self.connect()
         if result == False:
@@ -31,13 +57,41 @@ class RFIDReader(object):
         if self.api.list_usb_devices(deviceinterface=True, present=True) == False:
             return False
 
-        if self.api.init_winusb_device(**self.match) == False:
+        device = None
+
+        for path in self.api.device_paths:
+            if path.find(self.match['vid']) != -1 and path.find(self.match['pid']) != -1:
+                if self.match.has_key('port_number') or self.match.has_key('hub_number'):
+                    pt = path.split('#')[2]
+                    reg = r"SYSTEM\\CurrentControlSet\\Enum\USB\\" + self.match['vid'].upper() + "&" + self.match['pid'].upper() + "\\" + pt
+                    pprint(reg)
+                    hKey = _winreg.OpenKey(_winreg.HKEY_LOCAL_MACHINE, reg)
+                    result = _winreg.QueryValueEx(hKey, "LocationInformation")
+                    if result:
+                        result = result[0]
+                        if self.match.has_key('port_number'):
+                            val = 'Port_#' + str(self.match['port_number']).zfill(4)
+                            if result.find(val) == -1:
+                                continue
+                        if self.match.has_key('hub_number'):
+                            val = 'Hub_#' + str(self.match['hub_number']).zfill(4)
+                            if result.find(val) == -1:
+                                continue
+                    device = path
+                    break
+                else:
+                    device = path
+                    break
+
+
+        if device == None:
+            return False
+
+        if self.api.init_winusb_device_by_path(device) == False:
             return False
 
         print('Found device')
         self._find_intf()
-
-        pprint(self.api.device_paths)
 
         try:
             print('Setting BOOT protocol')
@@ -123,11 +177,11 @@ class RFIDReader(object):
 #  idProduct          0x0009 
 
 if __name__ == '__main__':
-    r = RFIDReader(vid="08ff", pid="0009")
-
-    print 'Starting read loop'
-    while True:
-        data = r.poll()
-        if data:
-            print 'poll result:'
-            print data
+    pprint(listDevices())
+    #r = RFIDReader(idVendor=0x08ff, idProduct=0x0009)
+    #print 'Starting read loop'
+    #while True:
+    #data = r.poll()
+    #if data:
+    #    print 'poll result:'
+    #    print data

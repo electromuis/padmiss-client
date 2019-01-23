@@ -10,12 +10,12 @@ class Base(object):
     def __init__(self, **kwargs):
         for k, c in self.__fields__.iteritems():
             if not k in kwargs:
-				if c == None:
-                	raise TournamentApiError('Required parameter \'%s\' missing' % k)
-				else:
-					val = c
-			else:
-            	val = kwargs[k]
+                if c == None:
+                    raise TournamentApiError('Required parameter \'%s\' missing' % k)
+                else:
+                    val = c
+            else:
+                    val = kwargs[k]
             if c and isinstance(val, dict):
                 val = c(**val)
             setattr(self, k, val)

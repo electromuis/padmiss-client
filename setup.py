@@ -5,14 +5,17 @@ else:
     from hid import listDevices
 
 from pprint import pprint
+
+os.environ["KIVY_WINDOW"] = "pygame"
+
 from kivy.app import App
 from kivy.uix.button import Button
 from kivy.uix.textinput import TextInput
 from kivy.uix.label import Label
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.popup import Popup
-import config
 
+import config
 import json
 
 values = {

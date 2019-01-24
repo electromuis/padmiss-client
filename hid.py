@@ -4,9 +4,18 @@ import sys
 import usb
 import logging
 import time
+from pprint import pprint
 
 log = logging.getLogger(__name__)
 
+def listDevices():
+    ret = []
+    dev = usb.core.find(find_all=True)
+    for d in dev:
+        vendor = '0x' + str(("%x" % d.idVendor).zfill(4))
+        product = '0x' + str(("%x" % d.idProduct).zfill(4))
+        ret.append({'idVendor': vendor, 'idProduct': product, 'port_number': d.port_number, 'bus': d.bus})
+    return ret
 
 class RFIDReader(object):
     def __init__(self, **match):
@@ -151,6 +160,8 @@ class RFIDReader(object):
 #  idProduct          0x0009 
 
 if __name__ == '__main__':
+    pprint(listDevices())
+
     r = RFIDReader(idVendor=0x08ff, idProduct=0x0009)
 
     print 'Starting read loop'

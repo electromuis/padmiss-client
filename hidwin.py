@@ -33,7 +33,7 @@ def listDevices():
             ids[1] = '0x' + ids[1].split('_')[1]
 
             matchObj = re.match(r'Port_#0*(\d+)\.Hub_#0*(\d+)', result, re.I)
-            ret.append({'idVendor': ids[0], 'idProduct': ids[1], 'port_number': matchObj.group(1), 'hub_number': matchObj.group(2)})
+            ret.append({'idVendor': ids[0], 'idProduct': ids[1], 'port_number': matchObj.group(1), 'bus': matchObj.group(2)})
 
     return ret
 
@@ -73,8 +73,8 @@ class RFIDReader(object):
                             val = 'Port_#' + str(self.match['port_number']).zfill(4)
                             if result.find(val) == -1:
                                 continue
-                        if self.match.has_key('hub_number'):
-                            val = 'Hub_#' + str(self.match['hub_number']).zfill(4)
+                        if self.match.has_key('bus'):
+                            val = 'Hub_#' + str(self.match['bus']).zfill(4)
                             if result.find(val) == -1:
                                 continue
                     device = path

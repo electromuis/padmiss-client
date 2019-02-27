@@ -3,3 +3,5 @@
 *.spec
 build
 dist
+Backup
+!Backup/.gitkeep

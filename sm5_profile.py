@@ -35,32 +35,33 @@ class SLIni():
 
 	def write_string(self):
 		ret = "[Simply Love]\n"
-		for k,v in self.__fields__:
+		for k,v in self.__fields__.iteritems():
 			ret += k + ' ' + str(v) + "\n"
+		return ret
 	
 	def from_score(self, score):
 		if score['speedMod']['type'] == 'MaxBPM':
-			self.__fields__.SpeedModType = 'M'
+			self.__fields__['SpeedModType'] = 'M'
 		if score['speedMod']['type'] == 'Multiplier':
-			self.__fields__.SpeedModType = 'X'
+			self.__fields__['SpeedModType'] = 'X'
 		if score['speedMod']['type'] == 'ConstantBPM':
-			self.__fields__.SpeedModType = 'C'
+			self.__fields__['SpeedModType'] = 'C'
 
 		speed = float(score['speedMod']['value'])
 		if speed > 0:
-			if self.__fields__.SpeedModType == 'C':
+			if self.__fields__['SpeedModType'] == 'C':
 				speed = int(speed * 100) / 100
 			else:
 				speed = int(speed)
-			self.__fields__.SpeedMod = str(speed)
+			self.__fields__['SpeedMod'] = str(speed)
 
 		if score['noteSkin']:
-			self.__fields__.NoteSkin = score['noteSkin']
+			self.__fields__['NoteSkin'] = score['noteSkin']
 
 		for mod in score['modsOther']:
 			if mod['name'] == 'EFFECT_MINI':
 				value = int(mod['value'] * 100)
-				self.__fields__.Mini = str(value) + '%'
+				self.__fields__['Mini'] = str(value) + '%'
 		
 
 def generate_statsxml(player_name, player_guid, score):

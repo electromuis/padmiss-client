@@ -1,8 +1,25 @@
 {
     "url": "https://api.padmiss.com/",
-    "apikey": "INSERT API KEY HERE",
+    "apikey": "uUtcHutavTkTze5UxL",
     "scores_dir": "./",
     "backup_dir": "./Backup",
     "profile_dir": "StepMania 5",
-    "scanners": []
+    "scanners": [
+		{
+			"path": "C:/padmiss/player1",
+			"config": {
+				"idVendor": "08ff",
+				"idProduct": "0009",
+				"port_number": 1
+			}
+		},
+		{
+			"path": "C:/padmiss/player2",
+			"config": {
+				"idVendor": "08ff",
+				"idProduct": "0009",
+				"port_number": 2
+			}
+		}
+	]
 }

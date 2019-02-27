@@ -158,7 +158,7 @@ def main():
     log.debug('Hello')
 
     for side, init in config.readers.iteritems():
-        reader = init()
+        reader = init
         thread = Thread(target=poller, args=(side, reader))
         thread.daemon = True
         thread.start()

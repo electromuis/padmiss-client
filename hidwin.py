@@ -43,9 +43,9 @@ class RFIDReader(object):
         self.match = match
 
         if self.match['idVendor']:
-            self.match['vid'] = "vid_" + ("%x" % match['idVendor']).zfill(4)
+            self.match['vid'] = "vid_" + match['idVendor']
         if self.match['idProduct']:
-            self.match['pid'] = "pid_" + ("%x" % match['idProduct']).zfill(4)
+            self.match['pid'] = "pid_" + match['idProduct']
 
         result = self.connect()
         if result == False:
@@ -55,11 +55,13 @@ class RFIDReader(object):
         self.api = WinUsbPy()
 
         if self.api.list_usb_devices(deviceinterface=True, present=True) == False:
+            print('E1')
             return False
 
         device = None
 
         for path in self.api.device_paths:
+            print(self.match['vid'] + "-" + self.match['pid'] + "-" + path)
             if path.find(self.match['vid']) != -1 and path.find(self.match['pid']) != -1:
                 if self.match.has_key('port_number') or self.match.has_key('hub_number'):
                     pt = path.split('#')[2]
@@ -85,9 +87,11 @@ class RFIDReader(object):
 
 
         if device == None:
+            print('E2')
             return False
 
         if self.api.init_winusb_device_by_path(device) == False:
+            print('E3')
             return False
 
         print('Found device')

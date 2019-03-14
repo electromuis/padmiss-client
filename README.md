@@ -6,6 +6,46 @@ All platforms:
 MemoryCardPadmissEnabled=1
 ```
 
+Relevant config options:
+
+MemoryCardPadmissEnabled=1
+Writes a special score file after each play, for each player to the (Stepmania dir)/Save/Padmiss
+
+MemoryCardOsMountPointP1/2=
+The folder that stepmania watches for the memory card/player profile
+
+MemoryCardDriver=Directory/USB
+Defines how stepmania looks for memory cards, USB is the default behaviour and Directory tells stepmania to detect the profile when the folder defined in MemoryCardOsMountPointP exists.
+
+MemoryCards=1
+MemoryCardProfiles=1
+Enables the use of profiles, without these only local profiles will function
+
+MemoryCardUsbBusP1/2
+MemoryCardUsbLevelP1/2
+MemoryCardUsbPortP1/2
+Options to filter memory cards in USB mode, for padmiss these all need to be -1!
+
+Linux:
+ - Install python 2.7
+ - Download the newest code
+ - Install dependancies
+ - 
+
+In terminal terms,
+```
+sudo apt-get install python2.7
+git clone https://github.com/electromuis/padmiss-daemon
+cd padmiss-daemon
+sudo pip install -r requirements.txt
+```
+
+Scanners linux:
+TODO
+
+Autostart linux:
+systemd TODO
+
 
 Windows:
  - Install stepmania version with padmiss support (https://drive.google.com/open?id=1_VFzXZg-fO4fxmYPV-k0ZCIalmlXM2LX)
@@ -15,6 +55,10 @@ Windows:
  - Run win-dependencies.bat
  - Configure scanners if needed (see header Scanners windows)
  - To start, run win-run.bat
+
+Autostart padmiss windows:
+You can use a lot of ways, this is one of them: https://www.sevenforums.com/tutorials/67503-task-create-run-program-startup-log.html
+In the exampe "Core Temp.exe" is used. Just replace this with win-run.bat, and change the "Start in" to your padmiss-daemon folder
 
 Scanners windows:
  - Download zadig driver tool (https://zadig.akeo.ie/)

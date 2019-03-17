@@ -6,6 +6,13 @@ else:
 
 import json
 
+class NULLReader(object):
+    def __init__(self, **match):
+        self.match = match
+
+    def poll(self):
+        return
+
 url = ''
 apikey = ''
 scores_dir = ''
@@ -25,4 +32,7 @@ with open('config.json') as c:
     readerConfig = data["scanners"]
 
     for s in readerConfig:
-        readers[s["path"]] = RFIDReader(**s["config"])
+        if s.has_key('vid'):
+            readers[s["path"]] = RFIDReader(**s["config"])
+        else:
+            readers[s["path"]] = NULLReader(**s["config"])

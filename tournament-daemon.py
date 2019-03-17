@@ -2,7 +2,7 @@
 
 import config
 from api import TournamentApi, ScoreBreakdown, Score, Song, ChartUpload, TimingWindows
-from new_poller import poller
+from new_poller import Poller
 
 import os
 import shutil
@@ -157,11 +157,8 @@ def main():
     logging.basicConfig(level=logging.DEBUG)
     log.debug('Hello')
 
-    for side, init in config.readers.iteritems():
-        reader = init
-        thread = Thread(target=poller, args=(side, reader))
-        thread.daemon = True
-        thread.start()
+    for side, reader in config.readers.iteritems():
+        poller = Poller(side, reader)
 
     while True:
         for n in os.listdir(config.scores_dir):

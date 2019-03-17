@@ -36,7 +36,8 @@ class Player(FlattenedBase):
     __fields__ = {
         'nickname' : None,
         '_id'      : None,
-	'metaData' : "{}"
+	    'metaData' : "{}",
+        'mountType': False
     }
 
     def getMeta(self, field):

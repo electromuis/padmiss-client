@@ -74,8 +74,11 @@ class Poller:
 
     def processUser(self, newUser, type):
         myConfig = self.myConfig
-        log.debug('Processing profile')
-
+        if newUser == False:
+            log.debug('Cleaning profile for ' + type)
+        else:
+            log.debug('Processing profile for ' + type)
+        
         if path.islink(myConfig['profilePath']):
             unlink(myConfig['profilePath'])
         elif path.isdir(myConfig['profilePath']):
@@ -85,22 +88,20 @@ class Poller:
             log.debug('Mounting to SM5')
 
             if type == 'card':
-				makedirs(myConfig['profilePath'])
-				profileSMPath = path.join(myConfig['profilePath'], config.profile_dir)
-				generate_profile(profileSMPath, newUser)
-				self.downloadPacks(myConfig['profilePath'], newUser)
+                makedirs(myConfig['profilePath'])
+                profileSMPath = path.join(myConfig['profilePath'], config.profile_dir)
+                generate_profile(profileSMPath, newUser)
+                self.downloadPacks(myConfig['profilePath'], newUser)
 
             if type == 'usb':
                 symlink(myConfig['usbPath'], myConfig['profilePath'])
-        else:
-            log.debug('Nothing to mount')
 
         self.mounted = newUser
 
     def pollHw(self):
         myConfig = self.myConfig
         while True:
-            sleep(1)
+            sleep(0.5)
 
             p = subprocess.Popen(["ls", "/dev/disk/by-path/"], stdout=subprocess.PIPE)
             out = p.stdout.read().split("\n")
@@ -152,7 +153,7 @@ class Poller:
                     data = data.strip()
                     if data:
                         log.debug('Requesting player data for %s', data)
-                        if self.mounted and self.mounted.mountType == 'card' and mounted.id == data:
+                        if self.mounted and self.mounted.mountType == 'card' and self.mounted._id == data:
                             self.processUser(False, 'card')
                             return
 

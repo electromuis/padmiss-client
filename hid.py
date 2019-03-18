@@ -12,13 +12,18 @@ def listDevices():
     ret = []
     dev = usb.core.find(find_all=True)
     for d in dev:
-        vendor = '0x' + str(("%x" % d.idVendor).zfill(4))
-        product = '0x' + str(("%x" % d.idProduct).zfill(4))
+        vendor = str(("%x" % d.idVendor).zfill(4))
+        product = str(("%x" % d.idProduct).zfill(4))
         ret.append({'idVendor': vendor, 'idProduct': product, 'port_number': d.port_number, 'bus': d.bus})
     return ret
 
 class RFIDReader(object):
     def __init__(self, **match):
+        if match.has_key('idVendor'):
+            match['idVendor'] = int(match['idVendor'], 16)
+        if match.has_key('idProduct'):
+            match['idProduct'] = int(match['idProduct'], 16)
+        
         self.match = match
         result = self.connect()
         if result == False:
@@ -29,7 +34,10 @@ class RFIDReader(object):
         self.intf = None
         self.detached = False
         self.last_pressed = set()
-        self.dev = usb.core.find(**self.match)
+        match = self.match.copy()
+        if match.has_key('hwPath'):
+            del match['hwPath']
+        self.dev = usb.core.find(**match)
 
         if self.dev is None:
             return False
@@ -113,7 +121,7 @@ class RFIDReader(object):
                 # Ignore timeouts, why isn't there a better way to do this in PyUSB?!
                 if e.errno == 110:
                     break
-		elif e.errno == 19 or e.errno == 5:
+                elif e.errno == 19 or e.errno == 5:
                     log.debug("Disconnect err")
                     self.find()
                     return ''

@@ -36,7 +36,7 @@ class SLIni():
 	def write_string(self):
 		ret = "[Simply Love]\n"
 		for k,v in self.__fields__.iteritems():
-			ret += k + ' ' + str(v) + "\n"
+			ret += k + '=' + str(v) + "\n"
 		return ret
 	
 	def from_score(self, score):

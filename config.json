@@ -1,15 +1,28 @@
 {
     "url": "https://api.padmiss.com/",
-    "apikey": "uUtcHutavTkTze5UxL",
-    "scores_dir": "./",
-    "backup_dir": "./Backup",
+    "apikey": "{}",
+    "scores_dir": "/home/itg/stepmania51/Save/Padmiss",
+    "backup_dir": "/home/itg/padmiss-daemon/backup",
     "profile_dir": "StepMania 5",
     "scanners": [
         {
-            "path": "/tmp/p1",
-            "type": "fifo",
+            "path": "/tmp/padmiss-daemon-p1",
+            "type": "scanner",
             "config": {
-                "swPath": "./fifo"
+                "idVendor": "08ff",
+				"idProduct": "0009",
+				"port_number": 2,
+				"hwPath": "pci-0000:00:1a.7-usb-0:2.1:1.0-scsi-0:0:0:0-part1"
+            }
+        },
+		{
+            "path": "/tmp/padmiss-daemon-p2",
+            "type": "scanner",
+            "config": {
+                "idVendor": "08ff",
+				"idProduct": "0009",
+				"port_number": 1,
+				"hwPath": "pci-0000:00:1a.7-usb-0:2.4:1.0-scsi-0:0:0:0-part1"
             }
         }
     ]

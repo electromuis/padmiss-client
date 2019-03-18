@@ -34,9 +34,12 @@ class RFIDReader(object):
         self.intf = None
         self.detached = False
         self.last_pressed = set()
-        match = self.match.copy()
-        if match.has_key('hwPath'):
-            del match['hwPath']
+        match = {}
+        options = ['idVendor', 'idProduct', 'port_number']
+        for o in options:
+            if self.match.has_key(o):
+                match[o] = self.match[o]
+        
         self.dev = usb.core.find(**match)
 
         if self.dev is None:

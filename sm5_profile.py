@@ -49,7 +49,7 @@ class SLIni():
 
 		speed = float(score['speedMod']['value'])
 		if speed > 0:
-			if self.__fields__['SpeedModType'] == 'C':
+			if self.__fields__['SpeedModType'] == 'X':
 				speed = int(speed * 100) / 100
 			else:
 				speed = int(speed)
@@ -62,13 +62,12 @@ class SLIni():
 			if mod['name'] == 'EFFECT_MINI':
 				value = int(mod['value'] * 100)
 				self.__fields__['Mini'] = str(value) + '%'
-		
 
-def generate_statsxml(player_name, player_guid, score):
+def generate_statsxml(player, score):
 	stats = Element('Stats')
 	general = SubElement(stats, 'GeneralData')
-	SubElement(general, 'DisplayName').text = player_name
-	SubElement(general, 'Guid').text = player_guid
+	SubElement(general, 'DisplayName').text = player.nickname
+	SubElement(general, 'Guid').text = player._id
 	if score != None:
 		modifiers = SubElement(general, 'DefaultModifiers')
 		mods = []
@@ -84,13 +83,14 @@ def generate_statsxml(player_name, player_guid, score):
 	return stats
 
 
-def generate_editableini(player_name):
+def generate_editableini(player):
 	ini_template = \
 '''
 [Editable]
 DisplayName={displayname}
+LastUsedHighScoreName={shortname}
 '''[1:]
-	return ini_template.format(displayname=player_name)
+	return ini_template.format(displayname=player.nickname, shortname=player.shortNickname)
 
 def generate_sl_ini(score):
 	if score == None:
@@ -100,16 +100,19 @@ def generate_sl_ini(score):
 
 	return ini.write_string()
 
-def generate_profile(dirname, player_name, player_guid):
+def generate_profile(dirname, player):
 	makedirs(dirname)
 
-	score = api.get_last_sore(player_guid)
+	score = api.get_last_sore(player._id)
 
 	with open(path.join(dirname, 'Stats.xml'), 'w') as statsxml:
-		statsxml.write(tostring(generate_statsxml(player_name, player_guid, score)))
+		statsxml.write(tostring(generate_statsxml(player, score)))
 
 	with open(path.join(dirname, 'Editable.ini'), 'w') as editableini:
-		editableini.write(generate_editableini(player_name))
+		editableini.write(generate_editableini(player))
+
+	with open(path.join(dirname, 'card0.txt'), 'w') as card:
+		card.write('E004' + player._id.encode("hex").zfill(12)[0:12])
 
 	ini = generate_sl_ini(score)
 	if ini != None:

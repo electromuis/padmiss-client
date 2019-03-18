@@ -35,6 +35,7 @@ class FlattenedBase(Base):
 class Player(FlattenedBase):
     __fields__ = {
         'nickname' : None,
+        'shortNickname' : '',
         '_id'      : None,
 	    'metaData' : "{}",
         'mountType': False

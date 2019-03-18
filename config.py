@@ -1,10 +1,13 @@
+import json
 import os
+from util import FIFOReader
+
 if os.name == 'nt':
     from hidwin import RFIDReader
 else:
     from hid import RFIDReader
 
-import json
+
 
 class NULLReader(object):
     def __init__(self, **match):
@@ -32,7 +35,9 @@ with open('config.json') as c:
     readerConfig = data["scanners"]
 
     for s in readerConfig:
-        if s.has_key('vid'):
+        if s["type"] == "scanner":
             readers[s["path"]] = RFIDReader(**s["config"])
+        elif s["type"] == "fifo":
+            readers[s["path"]] = FIFOReader(s["config"]["swPath"])
         else:
             readers[s["path"]] = NULLReader(**s["config"])

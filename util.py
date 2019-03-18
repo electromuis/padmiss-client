@@ -6,6 +6,7 @@ import os
 class FIFOReader(object):
     def __init__(self, path):
         self.path = path
+        self.match = {}
         try:
             os.remove(path)
         except:

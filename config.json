@@ -4,5 +4,13 @@
     "scores_dir": "./",
     "backup_dir": "./Backup",
     "profile_dir": "StepMania 5",
-    "scanners": []
+    "scanners": [
+        {
+            "path": "/tmp/p1",
+            "type": "fifo",
+            "config": {
+                "swPath": "./fifo"
+            }
+        }
+    ]
 }

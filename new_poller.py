@@ -30,7 +30,7 @@ class Poller:
         self.processUser(False, 'usb')
         self.processUser(False, 'card')
 
-        if myConfig['hwPath']:
+        if myConfig.has_key('hwPath'):
             myConfig['devPath'] = '/dev/disk/by-path/' + myConfig['hwPath']
             thread = Thread(target=self.pollHw)
             thread.daemon = True
@@ -85,8 +85,10 @@ class Poller:
             log.debug('Mounting to SM5')
 
             if type == 'card':
-                generate_profile(path.join(side, config.profile_dir), p.nickname, p._id)
-                downloadPacks(myConfig['profilePath'], p)
+				makedirs(myConfig['profilePath'])
+				profileSMPath = path.join(myConfig['profilePath'], config.profile_dir)
+				generate_profile(profileSMPath, newUser)
+				self.downloadPacks(myConfig['profilePath'], newUser)
 
             if type == 'usb':
                 symlink(myConfig['usbPath'], myConfig['profilePath'])
@@ -150,7 +152,7 @@ class Poller:
                     data = data.strip()
                     if data:
                         log.debug('Requesting player data for %s', data)
-                        if mounted and mounted.mountType == 'card' and mounted.id == data:
+                        if self.mounted and self.mounted.mountType == 'card' and mounted.id == data:
                             self.processUser(False, 'card')
                             return
 

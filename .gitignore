@@ -5,3 +5,4 @@ build
 dist
 Backup
 !Backup/.gitkeep
+.idea

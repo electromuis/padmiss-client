@@ -146,20 +146,23 @@ class Poller:
         reader = self.reader
 
         while True:
-            data = reader.poll()
-
             try:
+                data = reader.poll()
+
                 if data:
                     data = data.strip()
                     if data:
-                        log.debug('Requesting player data for %s', data)
-                        if self.mounted and self.mounted.mountType == 'card' and self.mounted._id == data:
+
+                        if self.mounted and self.mounted.mountType == 'card' and self.mounted.rfidUid == data:
+                            log.debug('Eject player %s', data)
                             self.processUser(False, 'card')
-                            return
+                            continue
 
                         p = api.get_player(rfidUid=data)
                         if p:
+                            log.debug('Mount player %s', data)
                             p.mountType = 'card'
+                            p.rfidUid = data
                             self.processUser(p, 'card')
 
 

@@ -2,6 +2,7 @@
 
 import requests
 import json
+from graphqlclient import GraphQLClient
 
 class Base(object):
     __repr_suppress__ = set()
@@ -36,6 +37,7 @@ class Player(FlattenedBase):
     __fields__ = {
         'nickname' : None,
         'shortNickname' : '',
+        'rfidUid': '',
         '_id'      : None,
 	    'metaData' : "{}",
         'mountType': False
@@ -139,11 +141,44 @@ class TournamentApi(object):
     def __init__(self, url, key):
         self.url = url
         self.key = key
+        self.graph = GraphQLClient(url + '/graphiql')
 
 
     def get_player(self, playerId=None, rfidUid=None, nickname=None):
-        r = requests.get(self.url + '/api/players', params={ '_id' : playerId, 'rfidUid' : rfidUid, 'nickname' : nickname })
-        matches = r.json()
+        # r = requests.get(self.url + '/api/players', params={ '_id' : playerId, 'rfidUid' : rfidUid, 'nickname' : nickname })
+        # matches = r.json()
+
+        filter = {}
+        if playerId:
+            filter['playerId'] = playerId
+        if rfidUid:
+            filter['rfidUid'] = rfidUid
+        if nickname:
+            filter['nickname'] = nickname
+
+        result = self.graph.execute('''
+        {
+          Players (queryString: ''' + json.dumps(json.dumps(filter)) + ''') {
+            docs {
+              _id
+              nickname
+              shortNickname
+              avatarIconUrl
+              playerLevel
+              playerExperiencePoints
+              globalLadderRank
+              globalLadderRating
+              accuracy
+              stamina
+              totalSteps
+              totalPlayTimeSeconds
+              totalSongsPlayed
+              metaData
+            }
+          }
+        }
+        ''')
+        matches = json.loads(result)['data']['Players']['docs']
 
         if len(matches) != 1:
             return None
@@ -159,8 +194,54 @@ class TournamentApi(object):
         return tuple((Score(**score) for score in j['highScores']))
 
     def get_last_sore(self, playerId):
-        r = requests.get(self.url + '/api/scores?populate=player&sort=-playedAt&limit=1&player=%s' % playerId)
-        scores = r.json()
+        return None
+
+        filter = {"player": playerId}
+
+        result = self.graph.execute('''
+        {
+          Scores (sort: "-playedAt", limit: 1, queryString: ''' + json.dumps(json.dumps(filter)) + ''') {
+            docs {
+              stepChart {
+                song {
+                  title
+                  artist
+                }
+              }
+              isRecalced
+              originalScore
+              stepsInfo
+              modTurn
+              modMines
+              modAttacks
+              playedAt
+            }
+          }
+        }
+        ''')
+        print('''
+        {
+          Scores (sort: "-playedAt", limit: 1, queryString: ''' + json.dumps(json.dumps(filter)) + ''') {
+            docs {
+              stepChart {
+                song {
+                  title
+                  artist
+                }
+              }
+              isRecalced
+              originalScore
+              stepsInfo
+              modTurn
+              modMines
+              modAttacks
+              playedAt
+            }
+          }
+        }
+        ''')
+        scores = json.loads(result)['data']['Scores']['docs']
+
         if len(scores) != 1:
             return None
         return scores[0]

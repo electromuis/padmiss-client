@@ -1,74 +1,81 @@
-import sys
-import os
-import json
-import logging
-import pystray
-import threading
+"""
+Padmiss daemon, GUI version.
 
-# before kivy imports
-if __name__ == '__main__':
-    logging.basicConfig(level=logging.DEBUG, format=' %(threadName)s %(name)s - %(levelname)s: %(message)s')
+Initial code from https://evileg.com/en/post/68/.
+"""
 
-from kivy.app import App
-from kivy.uix.label import Label
-from pystray import Menu, MenuItem
-
-from PIL import Image, ImageDraw
+from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QGridLayout, QWidget, QCheckBox, QSystemTrayIcon, \
+    QSpacerItem, QSizePolicy, QMenu, QAction, QStyle, qApp
+from PyQt5.QtCore import QSize
 
 
-def start_tray_application(menu):
-    icon = pystray.Icon('Padmiss', title="Padmiss", menu=menu)
+class MainWindow(QMainWindow):
+    """
+         Сheckbox and system tray icons.
+         Will initialize in the constructor.
+    """
+    check_box = None
+    tray_icon = None
 
-    def setup(self):
-        icon.visible = True
-
-    # Generate a silly image
-    width = 32
-    height = 32
-    color1 = '#000'
-    color2 = '#fff'
-    image = Image.new('RGB', (width, height), color1)
-    dc = ImageDraw.Draw(image)
-    dc.rectangle((width // 2, 0, width, height // 2), fill=color2)
-    dc.rectangle((0, height // 2, width // 2, height), fill=color2)
-    icon.icon = image
-
-    icon.run(setup)
-
-
-class PadmissGUI(App):
-    def build(self):
-        return Label(text='Hello world')
-
-
-class GUIThread(threading.Thread):
+    # Override the class constructor
     def __init__(self):
-        threading.Thread.__init__(self)
-        self._padmiss_gui = PadmissGUI()
+        # Be sure to call the super class method
+        QMainWindow.__init__(self)
 
-    def run(self):
-        self._padmiss_gui.run()
-    
-    def stop(self):
-        self._padmiss_gui.stop()
+        self.setMinimumSize(QSize(480, 80))             # Set sizes
+        self.setWindowTitle("System Tray Application")  # Set a title
+        central_widget = QWidget(self)                  # Create a central widget
+        self.setCentralWidget(central_widget)           # Set the central widget
+
+        grid_layout = QGridLayout(self)         # Create a QGridLayout
+        central_widget.setLayout(grid_layout)   # Set the layout into the central widget
+        grid_layout.addWidget(QLabel("Application, which can minimize to Tray", self), 0, 0)
+
+        # Add a checkbox, which will depend on the behavior of the program when the window is closed
+        self.check_box = QCheckBox('Minimize to Tray')
+        grid_layout.addWidget(self.check_box, 1, 0)
+        grid_layout.addItem(QSpacerItem(0, 0, QSizePolicy.Expanding, QSizePolicy.Expanding), 2, 0)
+
+        # Init QSystemTrayIcon
+        self.tray_icon = QSystemTrayIcon(self)
+        self.tray_icon.setIcon(self.style().standardIcon(QStyle.SP_ComputerIcon))
+
+        '''
+            Define and add steps to work with the system tray icon
+            show - show window
+            hide - hide window
+            exit - exit from application
+        '''
+        show_action = QAction("Show", self)
+        quit_action = QAction("Exit", self)
+        hide_action = QAction("Hide", self)
+        show_action.triggered.connect(self.show)
+        hide_action.triggered.connect(self.hide)
+        quit_action.triggered.connect(qApp.quit)
+        tray_menu = QMenu()
+        tray_menu.addAction(show_action)
+        tray_menu.addAction(hide_action)
+        tray_menu.addAction(quit_action)
+        self.tray_icon.setContextMenu(tray_menu)
+        self.tray_icon.show()
+
+    # Override closeEvent, to intercept the window closing event
+    # The window will be closed only if there is no check mark in the check box
+    def closeEvent(self, event):
+        if self.check_box.isChecked():
+            event.ignore()
+            self.hide()
+            self.tray_icon.showMessage(
+                "Tray Program",
+                "Application was minimized to Tray",
+                QSystemTrayIcon.Information,
+                2000
+            )
 
 
-if __name__ == '__main__':
-    padmiss_gui = None
-
-    def show_gui():
-        padmiss_gui = GUIThread()
-        padmiss_gui.daemon = True
-        padmiss_gui.run()
-
-    def quit_app(icon):
-        if padmiss_gui:
-            padmiss_gui.stop()
-        icon.stop()
-
-    menu = Menu(
-        MenuItem('Settings...', show_gui),
-        MenuItem('Quit', quit_app)
-    )
-
-    start_tray_application(menu=menu)
+if __name__ == "__main__":
+    import sys
+    app = QApplication(sys.argv)
+    mw = MainWindow()
+    mw.show()
+    sys.exit(app.exec())

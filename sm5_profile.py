@@ -3,9 +3,8 @@
 from os import path, makedirs
 from xml.etree.ElementTree import Element, SubElement, tostring, parse
 
-import config
-from api import TournamentApi, ScoreBreakdown, Score, Song, ChartUpload, TimingWindows
-api = TournamentApi(config.url, config.apikey)
+from api import ScoreBreakdown, Score, Song, ChartUpload, TimingWindows
+
 
 class SLIni():
 	__fields__ = {
@@ -100,7 +99,7 @@ def generate_sl_ini(score):
 
 	return ini.write_string()
 
-def generate_profile(dirname, player):
+def generate_profile(api, dirname, player):
 	makedirs(dirname)
 
 	score = api.get_last_sore(player._id)

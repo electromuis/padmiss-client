@@ -1,24 +1,18 @@
 #!/usr/bin/env python
 
-import config
-from api import TournamentApi, ScoreBreakdown, Score, Song, ChartUpload, TimingWindows
-from new_poller import Poller
-
 import os
 import shutil
 import logging
 import tempfile
+import threading
 
-from threading import Thread
 from os import path
-
 from time import sleep
 from xml.etree import ElementTree
 
+from api import TournamentApi, ScoreBreakdown, Score, Song, ChartUpload, TimingWindows
 
-api = TournamentApi(config.url, config.apikey)
 log = logging.getLogger(__name__)
-
 text_by_xpath = lambda parent, xpath: parent.find(xpath).text
 
 
@@ -153,41 +147,39 @@ def parse_upload(root):
     return upload
 
 
-def main():
-    logging.basicConfig(level=logging.DEBUG)
-    log.debug('Hello')
+class ScoreUploader(threading.Thread):
+    def __init__(self, config):
+        threading.Thread.__init__(self)
+        self._config = config
+        self._api = TournamentApi(config.url, config.apikey)
 
-    for side, reader in config.readers.iteritems():
-        poller = Poller(side, reader)
+    def run(self):
+        log.info("Starting ScoreUploader")
 
-    while True:
-        for n in os.listdir(config.scores_dir):
-            if not n.endswith('.xml'):
-                continue
-            fn = path.join(config.scores_dir, n)
-            try:
-                log.debug('Uploading score from ' + fn)
+        while True:
+            for n in os.listdir(self._config.scores_dir):
+                if not n.endswith('.xml'):
+                    continue
+                fn = path.join(self._config.scores_dir, n)
+                try:
+                    log.debug('Uploading score from ' + fn)
 
-                root = ElementTree.parse(fn).getroot()
-                upload = parse_upload(root)
-                playerGuid = text_by_xpath(root, 'PlayerGuid')
-                player = api.get_player(playerGuid)
-                if player:
-                    log.debug('Uploading score for ' + player.nickname + ': ' + repr(upload))
-                    api.post_score(player, upload)
-                else:
-                    log.warning('Player not found: ' + playerGuid)
+                    root = ElementTree.parse(fn).getroot()
+                    upload = parse_upload(root)
+                    playerGuid = text_by_xpath(root, 'PlayerGuid')
+                    player = self._api.get_player(playerGuid)
+                    if player:
+                        log.debug('Uploading score for ' + player.nickname + ': ' + repr(upload))
+                        self._api.post_score(player, upload)
+                    else:
+                        log.warning('Player not found: ' + playerGuid)
 
-            except:
-                log.exception('Failed to upload score')
-                backup = tempfile.mkstemp(suffix='.xml', prefix='failed_', dir=config.backup_dir)[1]
-                shutil.copy(fn, backup)
-                log.debug('Backed up failed score to ' + backup)
-                    
-            os.remove(fn)
+                except:
+                    log.exception('Failed to upload score')
+                    backup = tempfile.mkstemp(suffix='.xml', prefix='failed_', dir=self._config.backup_dir)[1]
+                    shutil.copy(fn, backup)
+                    log.debug('Backed up failed score to ' + backup)
+                        
+                os.remove(fn)
 
-        sleep(1)
-
-
-if __name__ == '__main__':
-    main()
+            sleep(1)

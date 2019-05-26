@@ -2,6 +2,10 @@
 
 import os
 
+if os.name == 'nt':
+    from hidwin import RFIDReader
+else:
+    from hid import RFIDReader
 
 class FIFOReader(object):
     def __init__(self, path):
@@ -21,3 +25,23 @@ class FIFOReader(object):
 
     def release(self):
         os.remove(self.path)
+
+
+class NULLReader(object):
+    def __init__(self, **match):
+        self.match = match
+
+    def poll(self):
+        return
+
+
+def construct_readers(config):
+    readers = {}
+    for s in config.scanners:
+        if s["type"] == "scanner":
+            readers[s["path"]] = RFIDReader(**s["config"])
+        elif s["type"] == "fifo":
+            readers[s["path"]] = FIFOReader(s["config"]["swPath"])
+        else:
+            readers[s["path"]] = NULLReader(**s["config"])
+    return readers

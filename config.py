@@ -1,43 +1,77 @@
+from collections import namedtuple
 import json
 import os
-from util import FIFOReader
+import sys
+import logging
 
-if os.name == 'nt':
-    from hidwin import RFIDReader
-else:
-    from hid import RFIDReader
+log = logging.getLogger(__name__)
 
+PadmissConfig = namedtuple('PadmissConfig', (
+    'url',
+    'apikey',
+    'scores_dir',
+    'backup_dir',
+    'profile_dir',
+    'scanners'
+))
 
+class PadmissConfigManager(object):
+    def __init__(self, custom_config_file_path=None):
+        self._custom_config_file_path = custom_config_file_path
 
-class NULLReader(object):
-    def __init__(self, **match):
-        self.match = match
-
-    def poll(self):
-        return
-
-url = ''
-apikey = ''
-scores_dir = ''
-backup_dir = ''
-profile_dir = 'StepMania 5'
-
-readers = {}
-readerConfig = {}
-
-with open('config.json') as c:
-    data = json.load(c)
-    url = data["url"]
-    apikey = data["apikey"]
-    scores_dir = data["scores_dir"]
-    backup_dir = data["backup_dir"]
-    profile_dir = data["profile_dir"]
-    readerConfig = data["scanners"]
-
-    for s in readerConfig:
-        if s["type"] == "scanner":
-            readers[s["path"]] = RFIDReader(**s["config"])
-        elif s["type"] == "fifo":
-            readers[s["path"]] = FIFOReader(s["config"]["swPath"])
+    def _get_path_inside_padmiss_dir(self, *path):
+        if os.name == 'nt':
+            return os.path.join(os.getenv('APPDATA'), 'Padmiss', *path)
         else:
-            readers[s["path"]] = NULLReader(**s["config"])
+            return os.path.join(expanduser('~'), '.padmiss', *path)
+
+    def _get_default_config(self):
+        return PadmissConfig(
+            url='https://api.padmiss.com/',
+            apikey='',
+            scores_dir=self._get_path_inside_padmiss_dir('scores'),
+            backup_dir=self._get_path_inside_padmiss_dir('backups'),
+            profile_dir='StepMania 5',
+            scanners=[]
+        )
+
+    def _get_config_path(self):
+        if self._custom_config_file_path is not None:
+            return self._custom_config_file_path
+
+        return self._get_path_inside_padmiss_dir('config.json')
+
+    def _create_initial_directories_if_necessary(self):
+        if self._custom_config_file_path is not None:
+            return
+
+        initial_dirs = [
+            self._get_path_inside_padmiss_dir(),
+            self._get_path_inside_padmiss_dir('scores'),
+            self._get_path_inside_padmiss_dir('backups')
+        ]
+
+        root_config_path = self._get_path_inside_padmiss_dir()
+
+        if not os.path.isdir(root_config_path):
+            for dir_to_create in initial_dirs:
+                log.info('Directory "%s" does not exist, creating', dir_to_create)
+                os.makedirs(dir_to_create)
+
+            log.info('Saving default config')
+            self.save_config(self._get_default_config())
+
+    def save_config(self, config):
+        path = self._get_config_path()
+
+        with open(path, 'w') as f:
+            # https://stackoverflow.com/a/15800273
+            f.write(json.dumps(config._asdict()))
+
+    def load_config(self):
+        self._create_initial_directories_if_necessary()
+        path = self._get_config_path()
+
+        with open(path) as c:
+            data = json.load(c)
+            return PadmissConfig(**data)

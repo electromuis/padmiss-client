@@ -1,45 +1,49 @@
-from shutil import rmtree
-from sm5_profile import generate_profile
-import config
 import logging
-from os import path, makedirs, remove, unlink, system, makedirs, symlink
-from api import TournamentApi, Player
-import urlparse
-import urllib2
-import zipfile
-import sys
+import os
 import subprocess
+import sys
+import threading
+import urllib2
+import urlparse
 import xml.etree.ElementTree as ET
+import zipfile
 from collections import namedtuple
+from os import path, makedirs, remove, unlink, system, makedirs
+from shutil import rmtree
 from threading import Thread
 from time import sleep
 
-log = logging.getLogger(__name__)
-api = TournamentApi(config.url, config.apikey)
+if os.name != 'nt':
+    from os import symlink
 
-class Poller:
-    def __init__(self, profilePath, reader):
+from sm5_profile import generate_profile
+from api import TournamentApi, Player
+
+log = logging.getLogger(__name__)
+
+class Poller(threading.Thread):
+    def __init__(self, config, profilePath, reader):
+        threading.Thread.__init__(self)
         myConfig = reader.match
+        self.config = config
+        self.api = TournamentApi(config.url, config.apikey)
         self.myConfig = myConfig
         self.reader = reader
         self.mounted = False
 
-        myConfig['profilePath'] = profilePath
-        myConfig['usbPath'] = profilePath + '-usb'
+
+    def run(self):
+        log.info("Starting Poller")
 
         self.processUser(False, 'usb')
         self.processUser(False, 'card')
 
-        if myConfig.has_key('hwPath'):
-            myConfig['devPath'] = '/dev/disk/by-path/' + myConfig['hwPath']
-            thread = Thread(target=self.pollHw)
-            thread.daemon = True
-            thread.start()
+        if self.myConfig.has_key('hwPath'):
+            self.myConfig['devPath'] = '/dev/disk/by-path/' + myConfig['hwPath']
+            self.pollHw()
+        elif reader:
+            self.pollCard()
 
-        if reader:
-            thread = Thread(target=self.pollCard)
-            thread.daemon = True
-            thread.start()
 
     def downloadPacks(self, folder, player):
         log.debug(folder)
@@ -60,7 +64,7 @@ class Poller:
                     if ext != '.zip':
                         log.debug('Nozip: ' + str(ext))
                         continue
-                    spath = folder + "/" + config.profile_dir + "/Songs"
+                    spath = folder + "/" + self.config.profile_dir + "/Songs"
                     filename = spath + "/custom" + str(i)
                     if not path.exists(spath):
                         makedirs(spath)
@@ -89,8 +93,8 @@ class Poller:
 
             if type == 'card':
                 makedirs(myConfig['profilePath'])
-                profileSMPath = path.join(myConfig['profilePath'], config.profile_dir)
-                generate_profile(profileSMPath, newUser)
+                profileSMPath = path.join(myConfig['profilePath'], self.config.profile_dir)
+                generate_profile(self.api, profileSMPath, newUser)
                 self.downloadPacks(myConfig['profilePath'], newUser)
 
             if type == 'usb':
@@ -133,13 +137,14 @@ class Poller:
                     root = tree.getroot()
                     guid = root.find('Guid').text
 
-                    p = api.get_player(playerId=guid)
+                    p = self.api.get_player(playerId=guid)
 
                 if not p:
                     p = Player(nickname='none', _id='none')
 
                 p.mountType = 'usb'
                 self.processUser(p, 'usb')
+
 
     def pollCard(self):
         myConfig = self.myConfig
@@ -158,7 +163,7 @@ class Poller:
                             self.processUser(False, 'card')
                             continue
 
-                        p = api.get_player(rfidUid=data)
+                        p = self.api.get_player(rfidUid=data)
                         if p:
                             log.debug('Mount player %s', data)
                             p.mountType = 'card'
@@ -168,6 +173,7 @@ class Poller:
 
             except Exception:
                 log.exception('Error getting player info from server')
+
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)

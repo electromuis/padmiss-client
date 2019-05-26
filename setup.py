@@ -1,13 +1,9 @@
+import sys
 import os
-if os.name == 'nt':
-    from hidwin import listDevices
-else:
-    from hid import listDevices
+import json
+import logging
 
 from pprint import pprint
-
-os.environ["KIVY_WINDOW"] = "pygame"
-
 from kivy.app import App
 from kivy.uix.button import Button
 from kivy.uix.textinput import TextInput
@@ -15,22 +11,12 @@ from kivy.uix.label import Label
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.popup import Popup
 
-import config
-import json
+if os.name == 'nt':
+    from hidwin import listDevices
+else:
+    from hid import listDevices
 
-values = {
-    'url': 'https://api.padmiss.com',
-    'backup_dir': os.path.dirname(os.path.realpath(__file__)) + os.sep + "backup",
-    'scores_dir ': '',
-    'apikey ': '',
-    'profile_dir': 'StepMania 5',
-    'scanners': {1: None, 2: None}
-}
-
-from kivy.config import Config
-Config.set('graphics', 'width', '800')
-Config.set('graphics', 'height', '170')
-Config.write()
+from config import PadmissConfigManager
 
 class MyApp(App):
     def findReader(self, num):
@@ -71,6 +57,9 @@ class MyApp(App):
         popup.open()
 
     def build(self):
+        self.config_manager = PadmissConfigManager()
+        self.config = self.config_manager.load_config()
+
         self.scannerButtons = {}
         self.textElements = {'profile': {}}
         self.readers = {}
@@ -80,7 +69,7 @@ class MyApp(App):
         subLayout = BoxLayout(orientation='horizontal')
         subLayout.add_widget(Label(text='Token', size_hint_max_x=200))
         token = TextInput()
-        token.text = config.apikey
+        token.text = self.config.apikey
         token.hint_text = "abc123acb123"
         self.textElements['apikey'] = token
         subLayout.add_widget(token)
@@ -90,7 +79,7 @@ class MyApp(App):
         subLayout = BoxLayout(orientation='horizontal')
         subLayout.add_widget(Label(text='Padmiss score dir', size_hint_max_x=200))
         scores = TextInput()
-        scores.text = config.scores_dir
+        scores.text = self.config.scores_dir
         scores.hint_text = "SM5DIR/Save/Padmiss"
         self.textElements['scores_dir'] = scores
         subLayout.add_widget(scores)
@@ -109,8 +98,8 @@ class MyApp(App):
             subLayout.add_widget(reader)
             subLayout.size_hint_min_y = 30
             folder = TextInput()
-            if i-1 in enumerate(config.readerConfig):
-                folder.text = config.readerConfig[i-1]['path']
+            if i-1 in enumerate(self.config.scanners):
+                folder.text = self.config.scanners[i-1]['path']
             folder.hint_text = 'C:\playerX'
             self.textElements["profile"][i] = folder
             subLayout.add_widget(folder)
@@ -123,22 +112,37 @@ class MyApp(App):
 
         return layout
 
-    def save(self, x):
-        pprint(values['scanners'][1])
-        return
+    def save(self):
+        values = {
+            'url': 'https://api.padmiss.com',
+            'backup_dir': os.path.dirname(os.path.realpath(__file__)) + os.sep + "backup",
+            'scores_dir ': '',
+            'apikey ': '',
+            'profile_dir': 'StepMania 5',
+            'scanners': {1: None, 2: None}
+        }
+        
+        pprint(self.textElements)
+        pprint(self.readers)
 
-        for name,e in self.textElements.iteritems():
-            if name == "profile":
-                for i,elm in e.iteritems():
-                    values['scanners'][i]
-                    elm.text
-                    self.readers[i]
+        # for name,e in self.textElements.iteritems():
+        #     if name == "profile":
+        #         for i,elm in e.iteritems():
+        #             values['scanners'][i]
+        #             elm.text
+        #             self.readers[i]
 
-            else:
-                if e.text:
-                    values[name] = e.text
+        #     else:
+        #         if e.text:
+        #             values[name] = e.text
 
-        with open('config.json', 'w') as the_file:
-            the_file.write(json.dumps(values))
+        # with open('config.json', 'w') as the_file:
+        #     the_file.write(json.dumps(values))
 
-MyApp().run()
+if __name__ == '__main__':
+    from kivy.config import Config
+    Config.set('graphics', 'width', '800')
+    Config.set('graphics', 'height', '170')
+    Config.write()
+
+    MyApp().run()

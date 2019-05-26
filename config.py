@@ -23,7 +23,7 @@ class PadmissConfigManager(object):
         if os.name == 'nt':
             return os.path.join(os.getenv('APPDATA'), 'Padmiss', *path)
         else:
-            return os.path.join(expanduser('~'), '.padmiss', *path)
+            return os.path.join(os.path.expanduser('~'), '.padmiss', *path)
 
     def _get_default_config(self):
         return PadmissConfig(

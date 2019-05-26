@@ -17,7 +17,7 @@ text_by_xpath = lambda parent, xpath: parent.find(xpath).text
 
 
 def xpath_items(root, items, mapper):
-    return { typ: mapper(text_by_xpath(root, path)) for typ, path in items.iteritems() }
+    return { typ: mapper(text_by_xpath(root, path)) for typ, path in items.items() }
 
 
 def parse_score(root):

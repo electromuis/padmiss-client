@@ -7,3 +7,4 @@ Backup
 !Backup/.gitkeep
 .idea
 .vscode
+.venv

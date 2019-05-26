@@ -37,12 +37,12 @@ class UsbSetupPacket(Structure):
 
 
 class Overlapped(Structure):
-    _fields_ = [('Internal', LPVOID),
-                ('InternalHigh', LPVOID),
-                ('Offset', DWORD),
-                ('OffsetHigh', DWORD),
-                ('Pointer', LPVOID),
-                ('hEvent', HANDLE),]
+	_fields_ = [('Internal', LPVOID),
+				('InternalHigh', LPVOID),
+				('Offset', DWORD),
+				('OffsetHigh', DWORD),
+				('Pointer', LPVOID),
+				('hEvent', HANDLE),]
 
 
 class UsbInterfaceDescriptor(Structure):

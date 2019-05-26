@@ -14,7 +14,7 @@ if __name__ == '__main__':
 
     # initialize pollers
     readers = construct_readers(config)
-    pollers = [Poller(config, side, reader) for side, reader in readers.iteritems()]
+    pollers = [Poller(config, side, reader) for side, reader in readers.items()]
 
     # initialize score uploader
     score_uploader = ScoreUploader(config)

@@ -9,7 +9,7 @@ class Base(object):
 
 
     def __init__(self, **kwargs):
-        for k, c in self.__fields__.iteritems():
+        for k, c in self.__fields__.items():
             if not k in kwargs:
                 if c == None:
                     raise TournamentApiError('Required parameter \'%s\' missing' % k)
@@ -25,7 +25,7 @@ class Base(object):
     def __repr__(self):
         return '(%s %s)' % (
                 type(self).__name__ ,
-                ' '.join('%s=%s' % (k, repr(v)) for k, v in self.__dict__.iteritems() if not k in self.__repr_suppress__)
+                ' '.join('%s=%s' % (k, repr(v)) for k, v in self.__dict__.items() if not k in self.__repr_suppress__)
                 )
 
 
@@ -48,7 +48,7 @@ class Player(FlattenedBase):
             return None
 
         data = json.loads(self.metaData)
-        if data.has_key(field):
+        if field in data:
             return data[field]
 
         return None
@@ -219,7 +219,7 @@ class TournamentApi(object):
           }
         }
         ''')
-        print('''
+        print(('''
         {
           Scores (sort: "-playedAt", limit: 1, queryString: ''' + json.dumps(json.dumps(filter)) + ''') {
             docs {
@@ -239,7 +239,7 @@ class TournamentApi(object):
             }
           }
         }
-        ''')
+        '''))
         scores = json.loads(result)['data']['Scores']['docs']
 
         if len(scores) != 1:
@@ -255,9 +255,9 @@ class TournamentApi(object):
         }
         data.update(upload.score.scoreBreakdown.__dict__)
         data.update(upload.song.__dict__)
-        data.update({ k: v for k, v in upload.__dict__.iteritems() if not isinstance(v, FlattenedBase)  })
+        data.update({ k: v for k, v in upload.__dict__.items() if not isinstance(v, FlattenedBase)  })
         dumpable = lambda v: v.__dict__ if isinstance(v, Base) else v
-        r = requests.post(self.url + '/post-score', json={ k: dumpable(v) for k, v in data.iteritems() if v is not None })
+        r = requests.post(self.url + '/post-score', json={ k: dumpable(v) for k, v in data.items() if v is not None })
         j = r.json()
         if j['success'] != True:
             raise TournamentApiError(j['message'])
@@ -269,9 +269,9 @@ if __name__ == '__main__':
     api = TournamentApi('http://localhost:3020', 've324mkvvk4k')
     p = api.get_player(nickname='hippaheikki')
     p = api.get_player(rfidUid='0014357364')
-    print p
+    print(p)
     if p:
-        print api.get_player_highscores(p._id)
+        print(api.get_player_highscores(p._id))
     breakdown = ScoreBreakdown(
         fantastics = 10,
         excellents = 9,

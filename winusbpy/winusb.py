@@ -1,5 +1,5 @@
-from winusberror import WinUSBError
-from winusbutils import *
+from .winusberror import WinUSBError
+from .winusbutils import *
 
 class WinUSBApi(object):
 	""" Facade class wrapping USB library WinUSB"""

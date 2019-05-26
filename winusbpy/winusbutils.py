@@ -1,6 +1,6 @@
 from ctypes	import *
 from ctypes.wintypes import *
-from winusbclasses import UsbSetupPacket,Overlapped, UsbInterfaceDescriptor, LpSecurityAttributes, GUID, SpDevinfoData, SpDeviceInterfaceData, SpDeviceInterfaceDetailData, PipeInfo
+from .winusbclasses import UsbSetupPacket,Overlapped, UsbInterfaceDescriptor, LpSecurityAttributes, GUID, SpDevinfoData, SpDeviceInterfaceData, SpDeviceInterfaceDetailData, PipeInfo
 
 WinUsb_Initialize = "WinUsb_Initialize"
 WinUsb_ControlTransfer = "WinUsb_ControlTransfer"
@@ -50,11 +50,11 @@ def get_winusb_functions(windll):
 	winusb_restypes[WinUsb_GetDescriptor] = BOOL
 	winusb_argtypes[WinUsb_GetDescriptor] = [c_void_p, c_ubyte, c_ubyte, c_ushort, POINTER(c_ubyte), c_ulong, POINTER(c_ulong)]
 
-        #BOOL __stdcall WinUsb_GetOverlappedResult(_In_ WINUSB_INTERFACE_HANDLE InterfaceHandle,_In_ LPOVERLAPPED lpOverlapped,_Out_ LPDWORD lpNumberOfBytesTransferred,_In_ BOOL bWait);
+		#BOOL __stdcall WinUsb_GetOverlappedResult(_In_ WINUSB_INTERFACE_HANDLE InterfaceHandle,_In_ LPOVERLAPPED lpOverlapped,_Out_ LPDWORD lpNumberOfBytesTransferred,_In_ BOOL bWait);
 	winusb_functions[WinUsb_GetOverlappedResult] = windll.WinUsb_GetOverlappedResult
 	winusb_restypes[WinUsb_GetOverlappedResult] = BOOL
 	#winusb_argtypes[WinUsb_GetOverlappedResult] = []
-        
+		
 	#BOOL __stdcall WinUsb_ReadPipe( _In_ WINUSB_INTERFACE_HANDLE InterfaceHandle,_In_ UCHAR PipeID,_Out_ PUCHAR Buffer,_In_ ULONG BufferLength,_Out_opt_ PULONG LengthTransferred,_In_opt_ LPOVERLAPPED Overlapped);
 	winusb_functions[WinUsb_ReadPipe] = windll.WinUsb_ReadPipe
 	#winusb_restypes[WinUsb_ReadPipe] = BOOL

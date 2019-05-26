@@ -34,7 +34,7 @@ class SLIni():
 
 	def write_string(self):
 		ret = "[Simply Love]\n"
-		for k,v in self.__fields__.iteritems():
+		for k,v in self.__fields__.items():
 			ret += k + '=' + str(v) + "\n"
 		return ret
 	
@@ -123,14 +123,14 @@ def parse_profile_scores(dirname):
 	tree = parse(path.join(dirname, 'Stats.xml'))
 	root = tree.getroot()
 	for song in root.findall('./SongScores/Song'):
-		print song.attrib['Dir']
+		print(song.attrib['Dir'])
 		for steps in song.findall('./Steps'):
-			print steps.attrib['Difficulty'], steps.attrib['StepsType']
+			print(steps.attrib['Difficulty'], steps.attrib['StepsType'])
 			for score in steps.findall('./HighScoreList/HighScore'):
-				print 'score'
-				print score.find('PercentDP').text
+				print('score')
+				print(score.find('PercentDP').text)
 				tns = score.find('TapNoteScores')
-				print tns.find('HitMine').text
+				print(tns.find('HitMine').text)
 
 
 if __name__ == '__main__':

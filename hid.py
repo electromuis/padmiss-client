@@ -19,9 +19,9 @@ def listDevices():
 
 class RFIDReader(object):
     def __init__(self, **match):
-        if match.has_key('idVendor'):
+        if 'idVendor' in match:
             match['idVendor'] = int(match['idVendor'], 16)
-        if match.has_key('idProduct'):
+        if 'idProduct' in match:
             match['idProduct'] = int(match['idProduct'], 16)
         
         self.match = match
@@ -37,7 +37,7 @@ class RFIDReader(object):
         match = {}
         options = ['idVendor', 'idProduct', 'port_number']
         for o in options:
-            if self.match.has_key(o):
+            if o in self.match:
                 match[o] = self.match[o]
         
         self.dev = usb.core.find(**match)
@@ -175,12 +175,12 @@ if __name__ == '__main__':
 
     r = RFIDReader(idVendor=0x08ff, idProduct=0x0009)
 
-    print 'Starting read loop'
+    print('Starting read loop')
     try:
         while True:
             data = r.poll()
             if data:
-                print 'poll result:'
-                print data
+                print('poll result:')
+                print(data)
     finally:
         r.release()

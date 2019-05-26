@@ -6,7 +6,7 @@ import logging
 import time
 import binascii
 from pprint import pprint
-import _winreg
+import winreg
 import re
 
 log = logging.getLogger(__name__)
@@ -24,8 +24,8 @@ def listDevices():
         ids = pts[1].split('&')
 
         reg = r"SYSTEM\\CurrentControlSet\\Enum\USB\\" + ids[0].upper() + "&" + ids[1].upper() + "\\" + pt
-        hKey = _winreg.OpenKey(_winreg.HKEY_LOCAL_MACHINE, reg)
-        result = _winreg.QueryValueEx(hKey, "LocationInformation")
+        hKey = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, reg)
+        result = winreg.QueryValueEx(hKey, "LocationInformation")
         if result:
             result = result[0]
 
@@ -61,21 +61,21 @@ class RFIDReader(object):
         device = None
 
         for path in self.api.device_paths:
-            print(self.match['vid'] + "-" + self.match['pid'] + "-" + path)
+            print((self.match['vid'] + "-" + self.match['pid'] + "-" + path))
             if path.find(self.match['vid']) != -1 and path.find(self.match['pid']) != -1:
-                if self.match.has_key('port_number') or self.match.has_key('hub_number'):
+                if 'port_number' in self.match or 'hub_number' in self.match:
                     pt = path.split('#')[2]
                     reg = r"SYSTEM\\CurrentControlSet\\Enum\USB\\" + self.match['vid'].upper() + "&" + self.match['pid'].upper() + "\\" + pt
                     pprint(reg)
-                    hKey = _winreg.OpenKey(_winreg.HKEY_LOCAL_MACHINE, reg)
-                    result = _winreg.QueryValueEx(hKey, "LocationInformation")
+                    hKey = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, reg)
+                    result = winreg.QueryValueEx(hKey, "LocationInformation")
                     if result:
                         result = result[0]
-                        if self.match.has_key('port_number'):
+                        if 'port_number' in self.match:
                             val = 'Port_#' + str(self.match['port_number']).zfill(4)
                             if result.find(val) == -1:
                                 continue
-                        if self.match.has_key('bus'):
+                        if 'bus' in self.match:
                             val = 'Hub_#' + str(self.match['bus']).zfill(4)
                             if result.find(val) == -1:
                                 continue
@@ -118,7 +118,7 @@ class RFIDReader(object):
         else:
             raise RuntimeError('Does not appear to be RFID reader (1)')
 
-        pipe_info_list = map(self.api.query_pipe, range(intf.b_num_endpoints))
+        pipe_info_list = list(map(self.api.query_pipe, list(range(intf.b_num_endpoints))))
         for item in pipe_info_list:
             self.pipe = item.pipe_id
             return

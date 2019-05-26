@@ -3,8 +3,8 @@ import os
 import subprocess
 import sys
 import threading
-import urllib2
-import urlparse
+import urllib.request, urllib.error, urllib.parse
+import urllib.parse
 import xml.etree.ElementTree as ET
 import zipfile
 from collections import namedtuple
@@ -38,7 +38,7 @@ class Poller(threading.Thread):
         self.processUser(False, 'usb')
         self.processUser(False, 'card')
 
-        if self.myConfig.has_key('hwPath'):
+        if 'hwPath' in self.myConfig:
             self.myConfig['devPath'] = '/dev/disk/by-path/' + myConfig['hwPath']
             self.pollHw()
         elif reader:
@@ -54,7 +54,7 @@ class Poller(threading.Thread):
                 try:
                     i = i + 1
                     log.debug(p)
-                    u = urllib2.urlopen(p)
+                    u = urllib.request.urlopen(p)
                     meta = u.info()
                     if int(meta.getheaders("Content-Length")[0]) > 1024 * 1024 * 10:
                         log.debug('Toobig')
@@ -73,7 +73,7 @@ class Poller(threading.Thread):
                     with zipfile.ZipFile(filename) as zf:
                         zf.extractall(spath)
                 except Exception as e:
-                    print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+                    print(('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e))
 
 
     def processUser(self, newUser, type):

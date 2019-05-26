@@ -6,3 +6,4 @@ dist
 Backup
 !Backup/.gitkeep
 .idea
+.vscode

@@ -87,7 +87,7 @@ class MainWindow(Ui_MainWindow, QtBaseClass):
         show_action = QAction("Settings...", self)
         quit_action = QAction("Quit", self)
         show_action.triggered.connect(self.show)
-        quit_action.triggered.connect(qApp.quit)
+        quit_action.triggered.connect(self.quitEvent)
         tray_menu = QMenu()
         tray_menu.addAction(show_action)
         tray_menu.addAction(quit_action)
@@ -127,6 +127,16 @@ class MainWindow(Ui_MainWindow, QtBaseClass):
     def closeEvent(self, event):
         event.ignore()
         self.hide()
+
+    def quitEvent(self, event):
+        self.trayIcon.hide()
+        self.padmissThread.finished.connect(qApp.quit)
+
+        if self.padmissThread.isRunning():
+            self.padmissThread.requestInterruption()
+            # will quit upon thread stopping
+        else:
+            qApp.quit()
 
 
 if __name__ == "__main__":

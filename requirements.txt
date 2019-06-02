@@ -1,11 +1,6 @@
 cython==0.29.3
 graphqlclient==0.2.4
-kivy-deps.glew==0.1.10
-kivy-deps.sdl2==0.1.20
-Kivy==1.10.1
-Pillow==6.0.0
 pypiwin32==223
-pystray==0.14.4
 pyudev==0.21.0
 pyusb==1.0.2
 requests==2.18.4

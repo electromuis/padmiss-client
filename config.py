@@ -66,7 +66,7 @@ class PadmissConfigManager(object):
 
         with open(path, 'w') as f:
             # https://stackoverflow.com/a/15800273
-            f.write(json.dumps(config._asdict()))
+            f.write(json.dumps(config._asdict(), sort_keys=True, indent=4))
 
     def load_config(self):
         self._create_initial_directories_if_necessary()

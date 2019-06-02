@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>619</width>
-    <height>471</height>
+    <width>600</width>
+    <height>400</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -33,8 +33,11 @@
       </item>
       <item>
        <widget class="QPushButton" name="configureButton">
+        <property name="disabled">
+         <bool>true</bool>
+        </property>
         <property name="text">
-         <string>Configure...</string>
+         <string>Configure (TODO)</string>
         </property>
        </widget>
       </item>

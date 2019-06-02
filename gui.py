@@ -14,6 +14,7 @@ from PyQt5.QtCore import QThread, pyqtSignal
 from PyQt5 import uic
 
 from daemon import PadmissDaemon
+from thread_utils import start_and_wait_for_threads
 
 log = logging.getLogger(__name__)
 
@@ -43,7 +44,7 @@ class LogThread(QThread):
         logger.addHandler(queue_handler)
 
     def run(self):
-        formatter = logging.Formatter('%(asctime)s - %(threadName)s %(name)s - %(levelname)s: %(message)s')
+        formatter = logging.Formatter('%(asctime)s - %(threadName)s - %(levelname)s: %(message)s')
 
         while True:
             try:
@@ -56,14 +57,10 @@ class LogThread(QThread):
 
 class PadmissThread(QThread):
     def run(self):
-        padmissDaemon = PadmissDaemon()
-        padmissDaemon.start()
-
-        while not self.isInterruptionRequested():
-            padmissDaemon.join(0.1)
-
-        padmissDaemon.stop()
-        padmissDaemon.join()
+        try:
+            start_and_wait_for_threads([PadmissDaemon()], lambda: self.isInterruptionRequested())
+        except:
+            log.exception("Exception on Padmiss daemon")
 
 
 Ui_MainWindow, QtBaseClass = uic.loadUiType(resource_path('main-window.ui'))

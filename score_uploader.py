@@ -11,6 +11,7 @@ from time import sleep
 from xml.etree import ElementTree
 
 from api import TournamentApi, ScoreBreakdown, Score, Song, ChartUpload, TimingWindows
+from thread_utils import CancellableThrowingThread
 
 log = logging.getLogger(__name__)
 text_by_xpath = lambda parent, xpath: parent.find(xpath).text
@@ -147,21 +148,16 @@ def parse_upload(root):
     return upload
 
 
-class ScoreUploader(threading.Thread):
+class ScoreUploader(CancellableThrowingThread):
     def __init__(self, config):
-        threading.Thread.__init__(self)
-        self._stop_event = threading.Event()
+        super().__init__()
         self._config = config
-        self._api = TournamentApi(config.url, config.apikey)
+        self.setName(__name__)
 
-    def stop(self):
-        log.info("Stop signal received")
-        self._stop_event.set()
+    def exc_run(self):
+        self._api = TournamentApi(self._config.url, self._config.apikey)
 
-    def run(self):
-        log.info("Starting ScoreUploader")
-
-        while not self._stop_event.wait(1):
+        while not self.stop_event.wait(1):
             for n in os.listdir(self._config.scores_dir):
                 if not n.endswith('.xml'):
                     continue
@@ -186,5 +182,3 @@ class ScoreUploader(threading.Thread):
                     log.debug('Backed up failed score to ' + backup)
                         
                 os.remove(fn)
-
-        log.info("Stopping ScoreUploader")

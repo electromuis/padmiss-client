@@ -16,24 +16,24 @@ from time import sleep
 if os.name != 'nt':
     from os import symlink
 
-from sm5_profile import generate_profile
 from api import TournamentApi, Player
+from sm5_profile import generate_profile
+from thread_utils import CancellableThrowingThread
 
 log = logging.getLogger(__name__)
 
-class Poller(threading.Thread):
+class Poller(CancellableThrowingThread):
     def __init__(self, config, profilePath, reader):
-        threading.Thread.__init__(self)
+        super().__init__()
+        self.setName('Poller')
         myConfig = reader.match
-        self._stop_event = threading.Event()
         self.config = config
         self.api = TournamentApi(config.url, config.apikey)
         self.myConfig = myConfig
         self.reader = reader
         self.mounted = False
 
-
-    def run(self):
+    def exc_run(self):
         log.info("Starting Poller")
 
         self.processUser(False, 'usb')
@@ -44,9 +44,6 @@ class Poller(threading.Thread):
             self.pollHw()
         elif self.reader:
             self.pollCard()
-
-    def stop(self):
-        self._stop_event.set()
 
     def downloadPacks(self, folder, player):
         log.debug(folder)
@@ -78,7 +75,6 @@ class Poller(threading.Thread):
                 except Exception as e:
                     print(('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e))
 
-
     def processUser(self, newUser, type):
         myConfig = self.myConfig
         if newUser == False:
@@ -107,7 +103,7 @@ class Poller(threading.Thread):
 
     def pollHw(self):
         myConfig = self.myConfig
-        while not self._stop_event.wait(1):
+        while not self.stop_event.wait(1):
             p = subprocess.Popen(["ls", "/dev/disk/by-path/"], stdout=subprocess.PIPE)
             out = p.stdout.read().split("\n")
             found = myConfig['hwPath'] in out
@@ -146,13 +142,10 @@ class Poller(threading.Thread):
                 p.mountType = 'usb'
                 self.processUser(p, 'usb')
 
-            self._stop_event.wait(1000)
-
-
     def pollCard(self):
         reader = self.reader
 
-        while not self._stop_event.wait(1):
+        while not self.stop_event.wait(1):
             try:
                 data = reader.poll()
 

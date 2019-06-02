@@ -150,13 +150,18 @@ def parse_upload(root):
 class ScoreUploader(threading.Thread):
     def __init__(self, config):
         threading.Thread.__init__(self)
+        self._stop_event = threading.Event()
         self._config = config
         self._api = TournamentApi(config.url, config.apikey)
+
+    def stop(self):
+        log.info("Stop signal received")
+        self._stop_event.set()
 
     def run(self):
         log.info("Starting ScoreUploader")
 
-        while True:
+        while not self._stop_event.wait(1):
             for n in os.listdir(self._config.scores_dir):
                 if not n.endswith('.xml'):
                     continue
@@ -182,4 +187,4 @@ class ScoreUploader(threading.Thread):
                         
                 os.remove(fn)
 
-            sleep(1)
+        log.info("Stopping ScoreUploader")

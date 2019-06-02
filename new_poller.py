@@ -25,6 +25,7 @@ class Poller(threading.Thread):
     def __init__(self, config, profilePath, reader):
         threading.Thread.__init__(self)
         myConfig = reader.match
+        self._stop_event = threading.Event()
         self.config = config
         self.api = TournamentApi(config.url, config.apikey)
         self.myConfig = myConfig
@@ -39,11 +40,13 @@ class Poller(threading.Thread):
         self.processUser(False, 'card')
 
         if 'hwPath' in self.myConfig:
-            self.myConfig['devPath'] = '/dev/disk/by-path/' + myConfig['hwPath']
+            self.myConfig['devPath'] = '/dev/disk/by-path/' + self.myConfig['hwPath']
             self.pollHw()
-        elif reader:
+        elif self.reader:
             self.pollCard()
 
+    def stop(self):
+        self._stop_event.set()
 
     def downloadPacks(self, folder, player):
         log.debug(folder)
@@ -104,9 +107,7 @@ class Poller(threading.Thread):
 
     def pollHw(self):
         myConfig = self.myConfig
-        while True:
-            sleep(0.5)
-
+        while not self._stop_event.wait(1):
             p = subprocess.Popen(["ls", "/dev/disk/by-path/"], stdout=subprocess.PIPE)
             out = p.stdout.read().split("\n")
             found = myConfig['hwPath'] in out
@@ -145,12 +146,13 @@ class Poller(threading.Thread):
                 p.mountType = 'usb'
                 self.processUser(p, 'usb')
 
+            self._stop_event.wait(1000)
+
 
     def pollCard(self):
-        myConfig = self.myConfig
         reader = self.reader
 
-        while True:
+        while not self._stop_event.wait(1):
             try:
                 data = reader.poll()
 

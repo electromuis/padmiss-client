@@ -1,30 +1,21 @@
 import logging
-import sys
 import time
 
-from util import construct_readers
-from new_poller import Poller
-from score_uploader import ScoreUploader
-from config import PadmissConfigManager
+from daemon import PadmissDaemon
+
+log = logging.getLogger(__name__)
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG, format=' %(threadName)s %(name)s - %(levelname)s: %(message)s')
-    config_manager = PadmissConfigManager()
-    config = config_manager.load_config()
+    padmiss_daemon = PadmissDaemon()
 
-    # initialize pollers
-    readers = construct_readers(config)
-    pollers = [Poller(config, side, reader) for side, reader in readers.items()]
+    try:
+        padmiss_daemon.start()
+        while True:
+            padmiss_daemon.join(0.1)
 
-    # initialize score uploader
-    score_uploader = ScoreUploader(config)
-
-    # initialize and wait for threads to complete
-    threads = pollers + [score_uploader]
-
-    for thread in threads:
-        thread.daemon = True
-        thread.start()
-
-    while True:
-        time.sleep(1)
+    except (Exception, KeyboardInterrupt) as e:
+        log.exception("Caught following while running daemon")
+        padmiss_daemon.stop()
+        padmiss_daemon.join()
+        log.info("Shutting down")

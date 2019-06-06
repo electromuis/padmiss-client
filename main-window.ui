@@ -33,11 +33,11 @@
       </item>
       <item>
        <widget class="QPushButton" name="configureButton">
-        <property name="disabled">
-         <bool>true</bool>
-        </property>
         <property name="text">
-         <string>Configure (TODO)</string>
+         <string>Configure</string>
+        </property>
+        <property name="disabled" stdset="0">
+         <bool>true</bool>
         </property>
        </widget>
       </item>

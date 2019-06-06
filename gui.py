@@ -9,9 +9,10 @@ import logging, logging.handlers
 import os
 import queue
 import sys
-from PyQt5.QtWidgets import QMainWindow, QApplication, QSystemTrayIcon, QMenu, QAction, QStyle, qApp
-from PyQt5.QtCore import QThread, pyqtSignal
+from PyQt5.QtWidgets import QMainWindow, QApplication, QSystemTrayIcon, QMenu, QAction, QStyle, qApp, QFileDialog
+from PyQt5.QtCore import QThread, pyqtSignal, Qt
 from PyQt5 import uic
+from config import PadmissConfigManager, PadmissConfig
 
 from daemon import PadmissDaemon
 from thread_utils import start_and_wait_for_threads
@@ -64,11 +65,63 @@ class PadmissThread(QThread):
 
 
 Ui_MainWindow, QtBaseClass = uic.loadUiType(resource_path('main-window.ui'))
+Ui_ConfigWindow, QtBaseClass = uic.loadUiType(resource_path('config-window.ui'))
+
+class ConfigWindow(Ui_ConfigWindow, QtBaseClass):
+    configManager = None
+
+    # Override the class constructor
+    def __init__(self):
+        self.configManager = PadmissConfigManager()
+        config = self.configManager.load_config()
+
+        QMainWindow.__init__(self)
+        Ui_ConfigWindow.__init__(self)
+
+        self.setAttribute(Qt.WA_DeleteOnClose)
+        self.setupUi(self)
+
+        # Load current config values
+        self.url.setText(config.url)
+        self.apikey.setText(config.apikey)
+        self.profile_dir.setText(config.profile_dir)
+        self.backup_dir.setText(config.backup_dir)
+        self.scores_dir.setText(config.scores_dir)
+
+        # Init buttons
+        self.backup_dir_browse.clicked.connect(self.pickBackupDir)
+        self.scores_dir_browse.clicked.connect(self.pickScoresDir)
+        self.save.clicked.connect(self.saveAndClose)
+
+    def pickBackupDir(self):
+        folder = str(QFileDialog.getExistingDirectory(self, "Select Directory"))
+        if folder:
+            self.backup_dir.setText(folder)
+
+    def pickScoresDir(self):
+        folder = str(QFileDialog.getExistingDirectory(self, "Select Directory"))
+        if folder:
+            self.scores_dir.setText(folder)
+
+    def saveAndClose(self):
+        config = PadmissConfig(
+            url=self.url.text(),
+            apikey=self.apikey.text(),
+            scores_dir=self.scores_dir.text(),
+            backup_dir=self.backup_dir.text(),
+            profile_dir=self.profile_dir.text(),
+            scanners=[]
+        )
+
+        self.configManager.save_config(config)
+        self.hide()
+
 
 class MainWindow(Ui_MainWindow, QtBaseClass):
     trayIcon = None
     logThread = None
     padmissThread = None
+    configWindow = None
 
     # Override the class constructor
     def __init__(self):
@@ -101,6 +154,10 @@ class MainWindow(Ui_MainWindow, QtBaseClass):
         # Init start button
         self.startStopButton.clicked.connect(self.togglePadmissThread)
 
+        # Init config button
+        self.configWindow = ConfigWindow()
+        self.configureButton.clicked.connect(self.openConfigWindow)
+
         # Start daemon
         self.togglePadmissThread()
 
@@ -127,6 +184,9 @@ class MainWindow(Ui_MainWindow, QtBaseClass):
     def closeEvent(self, event):
         event.ignore()
         self.hide()
+
+    def openConfigWindow(self):
+        self.configWindow.show()
 
     def quitEvent(self, event):
         self.trayIcon.hide()

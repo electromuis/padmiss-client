@@ -4,6 +4,7 @@ import sys
 import usb
 import logging
 import time
+import os
 from pprint import pprint
 
 log = logging.getLogger(__name__)
@@ -23,7 +24,6 @@ class RFIDReader(object):
             match['idVendor'] = int(match['idVendor'], 16)
         if 'idProduct' in match:
             match['idProduct'] = int(match['idProduct'], 16)
-        
         self.match = match
         result = self.connect()
         if result == False:
@@ -48,10 +48,13 @@ class RFIDReader(object):
         log.debug('Found device %s', repr(self.dev))
         self._find_intf()
 
+        try:
         if self.dev.is_kernel_driver_active(self.intf.bInterfaceNumber):
             log.debug('Detaching kernel driver from %s', repr(self))
             self.dev.detach_kernel_driver(self.intf.bInterfaceNumber)
             self.detached = True
+        except NotImplementedError:
+            log.debug('Detaching kernel driver not supported on this platform')
 
         try:
             log.debug('Setting BOOT protocol on %s', repr(self))
@@ -122,7 +125,7 @@ class RFIDReader(object):
                 typed.extend(new_keys)
             except usb.core.USBError as e:
                 # Ignore timeouts, why isn't there a better way to do this in PyUSB?!
-                if e.errno == 110:
+                if e.errno == 110 or e.errno == 10060: # 110 for linux, 10060 for windows
                     break
                 elif e.errno == 19 or e.errno == 5:
                     log.debug("Disconnect err")
@@ -149,13 +152,13 @@ class RFIDReader(object):
 
 
     def release(self):
+        usb.util.dispose_resources(self.dev)
         if self.detached:
             log.debug('Reattaching kernel driver to %s', repr(self))
-            usb.util.dispose_resources(self.dev)
             try:
                 self.dev.attach_kernel_driver(self.intf.bInterfaceNumber)
-            except usb.core.USBError as e:
-                log.debug('Err unloading')
+            except usb.core.USBError:
+                log.exception('Error while reattaching kernel driver')
             finally:
                 self.detached = False
 

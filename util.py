@@ -2,10 +2,7 @@
 
 import os
 
-if os.name == 'nt':
-    from hidwin import RFIDReader
-else:
-    from hid import RFIDReader
+from hid import RFIDReader
 
 class FIFOReader(object):
     def __init__(self, path):

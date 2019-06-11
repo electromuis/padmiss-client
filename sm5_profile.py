@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import binascii
 from os import path, makedirs
 from xml.etree.ElementTree import Element, SubElement, tostring, parse
 
@@ -105,13 +106,14 @@ def generate_profile(api, dirname, player):
 	score = api.get_last_sore(player._id)
 
 	with open(path.join(dirname, 'Stats.xml'), 'w') as statsxml:
-		statsxml.write(tostring(generate_statsxml(player, score)))
+		statsxml.write(tostring(generate_statsxml(player, score), encoding="unicode"))
 
 	with open(path.join(dirname, 'Editable.ini'), 'w') as editableini:
 		editableini.write(generate_editableini(player))
 
 	with open(path.join(dirname, 'card0.txt'), 'w') as card:
-		card.write('E004' + player._id.encode("hex").zfill(12)[0:12])
+		hex_player_id = binascii.hexlify(player._id.encode()).decode()
+		card.write('E004' + hex_player_id.zfill(12)[0:12])
 
 	ini = generate_sl_ini(score)
 	if ini != None:

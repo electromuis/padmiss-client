@@ -26,23 +26,23 @@ class Poller(CancellableThrowingThread):
     def __init__(self, config, profilePath, reader):
         super().__init__()
         self.setName('Poller')
-        myConfig = reader.match
-        self.config = config
         self.api = TournamentApi(config.url, config.apikey)
-        self.myConfig = myConfig
+        self.config = config
+        self.profilePath = profilePath
         self.reader = reader
-        self.mounted = False
+        self.mounted = None
 
     def exc_run(self):
         log.info("Starting Poller")
 
-        self.processUser(False, 'usb')
-        self.processUser(False, 'card')
+        # self.processUser(False, 'usb')
+        self.processUser(None, 'card')
 
-        if 'hwPath' in self.myConfig:
+        """if 'hwPath' in self.myConfig:
             self.myConfig['devPath'] = '/dev/disk/by-path/' + self.myConfig['hwPath']
-            self.pollHw()
-        elif self.reader:
+            self.pollHw() """
+
+        if self.reader:
             self.pollCard()
 
     def downloadPacks(self, folder, player):
@@ -76,32 +76,31 @@ class Poller(CancellableThrowingThread):
                     print(('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e))
 
     def processUser(self, newUser, type):
-        myConfig = self.myConfig
-        if newUser == False:
-            log.debug('Cleaning profile for ' + type)
-        else:
+        if newUser:
             log.debug('Processing profile for ' + type)
+        else:
+            log.debug('Cleaning profile for ' + type)
         
-        if path.islink(myConfig['profilePath']):
-            unlink(myConfig['profilePath'])
-        elif path.isdir(myConfig['profilePath']):
-            rmtree(myConfig['profilePath'])
+        if path.islink(self.profilePath):
+            unlink(self.profilePath)
+        elif path.isdir(self.profilePath):
+            rmtree(self.profilePath) # dangerous
 
-        if newUser != False and (self.mounted == False or self.mounted._id != newUser._id):
+        if newUser and (self.mounted is None or self.mounted._id != newUser._id):
             log.debug('Mounting to SM5')
 
             if type == 'card':
-                makedirs(myConfig['profilePath'])
-                profileSMPath = path.join(myConfig['profilePath'], self.config.profile_dir)
+                makedirs(self.profilePath)
+                profileSMPath = path.join(self.profilePath, self.config.profile_dir)
                 generate_profile(self.api, profileSMPath, newUser)
-                self.downloadPacks(myConfig['profilePath'], newUser)
+                self.downloadPacks(self.profilePath, newUser)
 
-            if type == 'usb':
-                symlink(myConfig['usbPath'], myConfig['profilePath'])
+            #if type == 'usb':
+            #    symlink(myConfig['usbPath'], self.profilePath)
 
         self.mounted = newUser
 
-    def pollHw(self):
+        """def pollHw(self):
         myConfig = self.myConfig
         while not self.stop_event.wait(1):
             p = subprocess.Popen(["ls", "/dev/disk/by-path/"], stdout=subprocess.PIPE)
@@ -140,34 +139,32 @@ class Poller(CancellableThrowingThread):
                     p = Player(nickname='none', _id='none')
 
                 p.mountType = 'usb'
-                self.processUser(p, 'usb')
+                self.processUser(p, 'usb') """
 
     def pollCard(self):
-        reader = self.reader
-
         while not self.stop_event.wait(1):
             try:
-                data = reader.poll()
-
+                data = self.reader.poll()
                 if data:
                     data = data.strip()
                     if data:
-
                         if self.mounted and self.mounted.mountType == 'card' and self.mounted.rfidUid == data:
                             log.debug('Eject player %s', data)
-                            self.processUser(False, 'card')
+                            self.processUser(None, 'card')
                             continue
 
                         p = self.api.get_player(rfidUid=data)
+
                         if p:
                             log.debug('Mount player %s', data)
                             p.mountType = 'card'
                             p.rfidUid = data
                             self.processUser(p, 'card')
 
-
             except Exception:
                 log.exception('Error getting player info from server')
+
+        self.reader.release()
 
 
 if __name__ == '__main__':

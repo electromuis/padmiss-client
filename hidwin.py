@@ -1,24 +1,26 @@
 #!/usr/bin/env python
 
-import sys
-from winusbpy import *
-import logging
-import time
 import binascii
-from pprint import pprint
-import winreg
+import logging
 import re
+import sys
+import time
+import winreg
+from ctypes import byref, sizeof, c_ulong, pointer, c_void_p, cast
+from pprint import pprint
+
+from winusbpy import WinUsbPy, UsbSetupPacket
 
 log = logging.getLogger(__name__)
 
 def listDevices():
     ret = []
-    api = WinUsbPy()
+    win_usb_py = WinUsbPy()
 
-    if api.list_usb_devices(deviceinterface=True, present=True) == False:
+    if win_usb_py.list_usb_devices(deviceinterface=True, present=True) == False:
         return ret
 
-    for path in api.device_paths:
+    for path in win_usb_py.device_paths:
         pts = path.split('#')
         pt = pts[2]
         ids = pts[1].split('&')
@@ -52,15 +54,15 @@ class RFIDReader(object):
             raise RuntimeError('Not found')
 
     def connect(self):
-        self.api = WinUsbPy()
+        self.win_usb_py = WinUsbPy()
 
-        if self.api.list_usb_devices(deviceinterface=True, present=True) == False:
+        if self.win_usb_py.list_usb_devices(deviceinterface=True, present=True) == False:
             print('E1')
             return False
 
         device = None
 
-        for path in self.api.device_paths:
+        for path in self.win_usb_py.device_paths:
             print((self.match['vid'] + "-" + self.match['pid'] + "-" + path))
             if path.find(self.match['vid']) != -1 and path.find(self.match['pid']) != -1:
                 if 'port_number' in self.match or 'hub_number' in self.match:
@@ -90,7 +92,7 @@ class RFIDReader(object):
             print('E2')
             return False
 
-        if self.api.init_winusb_device_by_path(device) == False:
+        if self.win_usb_py.init_winusb_device_by_path(device) == False:
             print('E3')
             return False
 
@@ -100,15 +102,15 @@ class RFIDReader(object):
         try:
             print('Setting BOOT protocol')
             pkt1 = UsbSetupPacket(0b00100001)
-            self.api.control_transfer(pkt1, buff=[0])
+            self.win_usb_py.control_transfer(pkt1, buff=[0])
         except:
-            print('err3')
+            log.exception('Error while setting boot protocol')
             return False
 
         return True
 
     def _find_intf(self):
-        intf = self.api.query_interface_settings(0)
+        intf = self.win_usb_py.query_interface_settings(0)
 
         if intf == None:
             raise RuntimeError('No interface found')
@@ -118,12 +120,27 @@ class RFIDReader(object):
         else:
             raise RuntimeError('Does not appear to be RFID reader (1)')
 
-        pipe_info_list = list(map(self.api.query_pipe, list(range(intf.b_num_endpoints))))
+        pipe_info_list = list(map(self.win_usb_py.query_pipe, list(range(intf.b_num_endpoints))))
         for item in pipe_info_list:
             self.pipe = item.pipe_id
             return
 
         raise RuntimeError('Does not appear to be RFID reader (2)')
+
+    def _set_timeout(self, timeout):
+        c_timeout = c_ulong(timeout)
+
+        result = self.win_usb_py.api.exec_function_winusb(
+            "WinUsb_SetPipePolicy",
+            self.win_usb_py.handle_winusb,
+            self.pipe,
+            c_ulong(0x03),
+            sizeof(c_timeout),
+            byref(c_timeout)
+        )
+
+        if not result:
+            raise Exception("Error while setting read timeout")
 
     def find(self):
         result = False
@@ -141,23 +158,32 @@ class RFIDReader(object):
         typed = []
 
         try:
-            while True:
-                res = self.api.read(self.pipe, 8)
-                c = ord(res[2])
+            self._set_timeout(initial_timeout)
 
+            while True:
+                res = self.win_usb_py.read(self.pipe, 8)
+
+                if not res:
+                    # TODO: at least timeout gets here. what else?
+                    break
+
+                if len(typed) == 0:
+                    self._set_timeout(key_timeout)
+
+                c = ord(res[2])
                 if c > 0:
                     key = self._translate(c)
                     if key == '\n':
-                        return ''.join(typed)
+                        break
                     else:
                         typed.append(key)
-                    # print("Disconnect err")
-                    # self.find()
-                    # return ''
+
         except:
-            print("Disconnect err")
+            log.exception('Error while reading card input')
             self.find()
             return ''
+        
+        return ''.join(typed)
 
     def _translate(self, key):
         if key < 30 or key > 40:
@@ -170,11 +196,11 @@ class RFIDReader(object):
         elif key == 40:
             return '\n'
 
-    def __repr__(self):
-        if self.intf:
-            return 'Bus %d device %d interface %d' % (self.dev.bus, self.dev.address, self.intf.bInterfaceNumber)
-        else:
-            return 'Bus %d device %d' % (self.dev.bus, self.dev.address)
+#    def __repr__(self):
+#        if self.intf:
+#            return 'Bus %d device %d interface %d' % (self.dev.bus, self.dev.address, self.intf.bInterfaceNumber)
+#        else:
+#            return 'Bus %d device %d' % (self.dev.bus, self.dev.address)
 
 
 #  idVendor           0x08ff AuthenTec, Inc.

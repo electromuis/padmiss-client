@@ -26,7 +26,7 @@ class Poller(CancellableThrowingThread):
     def __init__(self, config, profilePath, reader):
         super().__init__()
         self.setName('Poller')
-        self.api = TournamentApi(config.url, config.apikey)
+        self.api = TournamentApi(config.padmiss_api_url, config.api_key)
         self.config = config
         self.profilePath = profilePath
         self.reader = reader
@@ -64,7 +64,7 @@ class Poller(CancellableThrowingThread):
                     if ext != '.zip':
                         log.debug('Nozip: ' + str(ext))
                         continue
-                    spath = folder + "/" + self.config.profile_dir + "/Songs"
+                    spath = folder + "/" + self.config.profile_dir_name + "/Songs"
                     filename = spath + "/custom" + str(i)
                     if not path.exists(spath):
                         makedirs(spath)
@@ -91,7 +91,7 @@ class Poller(CancellableThrowingThread):
 
             if type == 'card':
                 makedirs(self.profilePath)
-                profileSMPath = path.join(self.profilePath, self.config.profile_dir)
+                profileSMPath = path.join(self.profilePath, self.config.profile_dir_name)
                 generate_profile(self.api, profileSMPath, newUser)
                 self.downloadPacks(self.profilePath, newUser)
 

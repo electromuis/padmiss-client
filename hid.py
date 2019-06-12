@@ -6,6 +6,7 @@ import logging
 import time
 import os
 from pprint import pprint
+from config import PadmissConfig, ScannerConfig
 
 log = logging.getLogger(__name__)
 
@@ -19,30 +20,35 @@ def listDevices():
     return ret
 
 class RFIDReader(object):
-    def __init__(self, **match):
-        if 'idVendor' in match:
-            match['idVendor'] = int(match['idVendor'], 16)
-        if 'idProduct' in match:
-            match['idProduct'] = int(match['idProduct'], 16)
-        self.match = match
+    def __init__(self, scannerConfig: ScannerConfig):
+        self.scannerConfig = scannerConfig
         result = self.connect()
         if result == False:
             raise RuntimeError('Not found')
+
+    def _get_find_match(self):
+        match = {}
+        if (self.scannerConfig.id_vendor is not None):
+            match["idVendor"] = int(self.scannerConfig.id_vendor, 16)
+        if (self.scannerConfig.id_product is not None):
+            match["idProduct"] = int(self.scannerConfig.id_product, 16)
+        if (self.scannerConfig.port_number is not None):
+            match["port_number"] = self.scannerConfig.port_number
+        if (self.scannerConfig.bus is not None):
+            match["bus"] = self.scannerConfig.bus
+        return match
 
     def connect(self):
         self.cfg = None
         self.intf = None
         self.detached = False
         self.last_pressed = set()
-        match = {}
-        options = ['idVendor', 'idProduct', 'port_number']
-        for o in options:
-            if o in self.match:
-                match[o] = self.match[o]
         
+        match = self._get_find_match()
         self.dev = usb.core.find(**match)
 
         if self.dev is None:
+            log.debug('Device not found with search: %s', match)
             return False
 
         log.debug('Found device %s', repr(self.dev))

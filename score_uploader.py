@@ -155,7 +155,11 @@ class ScoreUploader(CancellableThrowingThread):
         self.setName(__name__)
 
     def exc_run(self):
-        self._api = TournamentApi(self._config.url, self._config.apikey)
+        self._api = TournamentApi(self._config.padmiss_api_url, self._config.api_key)
+
+        if not self._config.scores_dir:
+            log.warn('Scores directory is not set, not uploading scores')
+            return
 
         while not self.stop_event.wait(1):
             for n in os.listdir(self._config.scores_dir):

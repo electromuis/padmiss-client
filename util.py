@@ -3,6 +3,7 @@
 import os
 
 from hid import RFIDReader
+from config import PadmissConfig
 
 class FIFOReader(object):
     def __init__(self, path):
@@ -25,20 +26,20 @@ class FIFOReader(object):
 
 
 class NULLReader(object):
-    def __init__(self, **match):
-        self.match = match
+    def __init__(self, **args):
+        pass
 
     def poll(self):
         return
 
 
-def construct_readers(config):
+def construct_readers(config: PadmissConfig):
     readers = {}
-    for s in config.scanners:
-        if s["type"] == "scanner":
-            readers[s["path"]] = RFIDReader(**s["config"])
-        elif s["type"] == "fifo":
-            readers[s["path"]] = FIFOReader(s["config"]["swPath"])
-        else:
-            readers[s["path"]] = NULLReader(**s["config"])
+    for device in config.devices:
+        if device.type == "scanner":
+            readers[device.path] = RFIDReader(device.config)
+#        elif s.type == "fifo":
+#            readers[s["path"]] = FIFOReader(s["config"]["swPath"])
+#        else:
+#            readers[s["path"]] = NULLReader(**s["config"])
     return readers

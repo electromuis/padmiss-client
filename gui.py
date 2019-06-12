@@ -12,8 +12,8 @@ import sys
 from PyQt5.QtWidgets import QMainWindow, QApplication, QSystemTrayIcon, QMenu, QAction, QStyle, qApp, QFileDialog
 from PyQt5.QtCore import QThread, pyqtSignal, Qt
 from PyQt5 import uic
-from config import PadmissConfigManager, PadmissConfig
 
+from config import PadmissConfigManager, PadmissConfig, ScannerConfig, DeviceConfig
 from daemon import PadmissDaemon
 from thread_utils import start_and_wait_for_threads
 
@@ -30,6 +30,9 @@ def resource_path(relative_path):
 
     return os.path.join(base_path, relative_path)
 
+#
+# Threads
+#
 
 class LogThread(QThread):
     log_event = pyqtSignal('PyQt_PyObject')
@@ -64,35 +67,91 @@ class PadmissThread(QThread):
             log.exception("Exception on Padmiss daemon")
 
 
-Ui_MainWindow, QtBaseClass = uic.loadUiType(resource_path('main-window.ui'))
-Ui_ConfigWindow, QtBaseClass = uic.loadUiType(resource_path('config-window.ui'))
+#
+# Windows & Widgets
+#
 
-class ConfigWindow(Ui_ConfigWindow, QtBaseClass):
+Ui_MainWindow, MainWindowBaseClass = uic.loadUiType(resource_path('main-window.ui'))
+Ui_ConfigWindow, ConfigWindowBaseClass = uic.loadUiType(resource_path('config-window.ui'))
+Ui_DeviceConfigWidget, DeviceConfigWidgetBaseClass = uic.loadUiType(resource_path('device-config-widget.ui'))
+Ui_ScannerConfigWidget, ScannerConfigWidgetBaseClass = uic.loadUiType(resource_path('scanner-config-widget.ui'))
+
+class ScannerConfigWidget(Ui_ScannerConfigWidget, ScannerConfigWidgetBaseClass):
+    def __init__(self, scanner: ScannerConfig):
+        ScannerConfigWidgetBaseClass.__init__(self)
+        Ui_ConfigWindow.__init__(self)
+        self.setupUi(self)
+
+        # setup
+        self.idVendor.setText(scanner.id_vendor)
+        self.idProduct.setText(scanner.id_product)
+        self.portNumber.setText(str(scanner.port_number) if scanner.port_number is not None else "")
+        self.bus.setText(str(scanner.bus) if scanner.bus is not None else "")
+
+    def getConfig(self):
+        return ScannerConfig(
+            id_vendor=self.idVendor.text(),
+            id_product=self.idProduct.text(),
+            port_number=int(self.portNumber.text()) if self.portNumber.text() else None,
+            bus=int(self.bus.text()) if self.bus.text() else None
+        )
+
+
+class DeviceConfigWidget(Ui_DeviceConfigWidget, DeviceConfigWidgetBaseClass):
+    def __init__(self, device: DeviceConfig):
+        ScannerConfigWidgetBaseClass.__init__(self)
+        Ui_ConfigWindow.__init__(self)
+        self.setupUi(self)
+
+        self.device = device
+        self.path.setText(device.path)
+        self.configWidget = None
+
+        if device.type == 'scanner':
+            self.configWidget = ScannerConfigWidget(device.config)
+                
+        self.deviceSpecificContent.addWidget(self.configWidget)
+
+    def getConfig(self):
+        if self.device.type == 'scanner':
+            return DeviceConfig(
+                type = 'scanner', # todo
+                path = self.path.text(),
+                config = self.configWidget.getConfig()
+            )
+
+        return None
+
+
+class ConfigWindow(Ui_ConfigWindow, ConfigWindowBaseClass):
     configManager = None
 
     # Override the class constructor
     def __init__(self):
-        self.configManager = PadmissConfigManager()
-        config = self.configManager.load_config()
-
-        QMainWindow.__init__(self)
+        ConfigWindowBaseClass.__init__(self)
         Ui_ConfigWindow.__init__(self)
-
-        self.setAttribute(Qt.WA_DeleteOnClose)
         self.setupUi(self)
-
-        # Load current config values
-        self.url.setText(config.url)
-        self.apikey.setText(config.apikey)
-        self.profile_dir.setText(config.profile_dir)
-        self.backup_dir.setText(config.backup_dir)
-        self.scores_dir.setText(config.scores_dir)
+        self.configManager = PadmissConfigManager()
 
         # Init buttons
         self.backup_dir_browse.clicked.connect(self.pickBackupDir)
         self.scores_dir_browse.clicked.connect(self.pickScoresDir)
         self.save.clicked.connect(self.saveAndClose)
 
+    def showEvent(self, event):
+        config = self.configManager.load_config()
+
+        # Load current config values
+        self.padmiss_api_url.setText(config.padmiss_api_url)
+        self.api_key.setText(config.api_key)
+        self.profile_dir_name.setText(config.profile_dir_name)
+        self.backup_dir.setText(config.backup_dir)
+        self.scores_dir.setText(config.scores_dir)
+
+        self.deviceTabs.clear()
+        for i, device in enumerate(config.devices):
+            self.deviceTabs.addTab(DeviceConfigWidget(device), str(i + 1))
+    
     def pickBackupDir(self):
         folder = str(QFileDialog.getExistingDirectory(self, "Select Directory"))
         if folder:
@@ -105,19 +164,19 @@ class ConfigWindow(Ui_ConfigWindow, QtBaseClass):
 
     def saveAndClose(self):
         config = PadmissConfig(
-            url=self.url.text(),
-            apikey=self.apikey.text(),
+            padmiss_api_url=self.padmiss_api_url.text(),
+            api_key=self.api_key.text(),
             scores_dir=self.scores_dir.text(),
             backup_dir=self.backup_dir.text(),
-            profile_dir=self.profile_dir.text(),
-            scanners=[]
+            profile_dir_name=self.profile_dir_name.text(),
+            devices=[self.deviceTabs.widget(index).getConfig() for index in range(self.deviceTabs.count())]
         )
 
         self.configManager.save_config(config)
-        self.hide()
+        self.close()
 
 
-class MainWindow(Ui_MainWindow, QtBaseClass):
+class MainWindow(Ui_MainWindow, MainWindowBaseClass):
     trayIcon = None
     logThread = None
     padmissThread = None
@@ -125,7 +184,7 @@ class MainWindow(Ui_MainWindow, QtBaseClass):
 
     # Override the class constructor
     def __init__(self):
-        QMainWindow.__init__(self)
+        MainWindowBaseClass.__init__(self)
         Ui_MainWindow.__init__(self)
         self.setupUi(self)
 
@@ -150,11 +209,9 @@ class MainWindow(Ui_MainWindow, QtBaseClass):
         # Init padmiss thread
         self.padmissThread = PadmissThread()
         self.padmissThread.finished.connect(self.padmissDaemonFinished)
-
-        # Init start button
         self.startStopButton.clicked.connect(self.togglePadmissThread)
 
-        # Init config button
+        # Init config window
         self.configWindow = ConfigWindow()
         self.configureButton.clicked.connect(self.openConfigWindow)
 

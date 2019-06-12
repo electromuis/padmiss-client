@@ -42,8 +42,7 @@ def start_and_wait_for_threads(stoppable_thread_list, should_stop_predicate=lamb
 
         while not should_stop_predicate():
             for thread in stoppable_thread_list:
-                if thread.is_alive():
-                    thread.join(0.1)
+                thread.join(0.1)
     finally:
         # daemon stopped? clean up and wait for them to stop
         for thread in stoppable_thread_list:

@@ -39,6 +39,10 @@ class PadmissConfig(BaseModel):
         extra: "forbid"
 
 class PadmissConfigManager(object):
+    def hasValidConfig(self):
+        path = self._get_config_path()
+        return os.path.isfile(path)
+
     def __init__(self, custom_config_file_path=None):
         self._custom_config_file_path = custom_config_file_path
 
@@ -55,7 +59,7 @@ class PadmissConfigManager(object):
             scores_dir='',
             backup_dir=self._get_path_inside_padmiss_dir('backups'),
             profile_dir_name='StepMania 5',
-            scanners=[]
+            devices=[]
         )
 
     def _get_config_path(self):
@@ -80,11 +84,16 @@ class PadmissConfigManager(object):
                 log.info('Directory "%s" does not exist, creating', dir_to_create)
                 os.makedirs(dir_to_create)
 
+        path = self._get_config_path()
+        if not os.path.exists(path):
             log.info('Saving default config')
             self.save_config(self._get_default_config())
 
+
     def save_config(self, config):
         path = self._get_config_path()
+        log.info("Saving to: " + path)
+
         with open(path, 'w') as f:
             f.write(config.json(sort_keys=True, indent=4))
 

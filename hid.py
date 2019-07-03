@@ -54,20 +54,19 @@ class RFIDReader(object):
         log.debug('Found device %s', repr(self.dev))
         self._find_intf()
 
-        try:
-        if self.dev.is_kernel_driver_active(self.intf.bInterfaceNumber):
-            log.debug('Detaching kernel driver from %s', repr(self))
-            self.dev.detach_kernel_driver(self.intf.bInterfaceNumber)
-            self.detached = True
-        except NotImplementedError:
-            log.debug('Detaching kernel driver not supported on this platform')
-
-        try:
-            log.debug('Setting BOOT protocol on %s', repr(self))
-            self.dev.ctrl_transfer(0b00100001, 0x0B, 0, self.intf.bInterfaceNumber, 0)
-        except:
-            self.release()
-            raise
+        # try:
+        #     if self.dev.is_kernel_driver_active(self.intf.bInterfaceNumber):
+        #         log.debug('Detaching kernel driver from %s', repr(self))
+        #         self.dev.detach_kernel_driver(self.intf.bInterfaceNumber)
+        #         self.detached = True
+        #     except NotImplementedError:
+        #         log.debug('Detaching kernel driver not supported on this platform')
+        # try:
+        #     log.debug('Setting BOOT protocol on %s', repr(self))
+        #     self.dev.ctrl_transfer(0b00100001, 0x0B, 0, self.intf.bInterfaceNumber, 0)
+        # except:
+        #     self.release()
+        #     raise
 
         return True
 

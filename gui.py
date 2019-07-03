@@ -125,6 +125,7 @@ class DeviceConfigWidget(Ui_DeviceConfigWidget, DeviceConfigWidgetBaseClass):
 
 class ConfigWindow(Ui_ConfigWindow, ConfigWindowBaseClass):
     configManager = None
+    callBack = None
 
     # Override the class constructor
     def __init__(self):
@@ -139,7 +140,10 @@ class ConfigWindow(Ui_ConfigWindow, ConfigWindowBaseClass):
         self.save.clicked.connect(self.saveAndClose)
 
     def showEvent(self, event):
-        config = self.configManager.load_config()
+        if self.configManager.hasValidConfig():
+            config = self.configManager.load_config()
+        else:
+            config = self.configManager._get_default_config()
 
         # Load current config values
         self.padmiss_api_url.setText(config.padmiss_api_url)
@@ -175,12 +179,29 @@ class ConfigWindow(Ui_ConfigWindow, ConfigWindowBaseClass):
         self.configManager.save_config(config)
         self.close()
 
+    def closeEvent(self, event):
+        if self.callBack != None:
+            if not self.configManager.hasValidConfig():
+                event.ignore()
+            else:
+                self.callBack()
+                self.callBack = None
+
+    def quitEvent(self, event):
+        if self.callBack != None:
+            if not self.configManager.hasValidConfig():
+                event.ignore()
+            else:
+                self.callBack()
+                self.callBack = None
+
 
 class MainWindow(Ui_MainWindow, MainWindowBaseClass):
     trayIcon = None
     logThread = None
     padmissThread = None
     configWindow = None
+    configManager = None
 
     # Override the class constructor
     def __init__(self):
@@ -196,6 +217,7 @@ class MainWindow(Ui_MainWindow, MainWindowBaseClass):
         # Init tray icon
         self.trayIcon = QSystemTrayIcon(self)
         self.trayIcon.setIcon(self.style().standardIcon(QStyle.SP_ComputerIcon))
+        self.trayIcon.activated.connect(self.show)
         show_action = QAction("Settings...", self)
         quit_action = QAction("Quit", self)
         show_action.triggered.connect(self.show)
@@ -214,9 +236,6 @@ class MainWindow(Ui_MainWindow, MainWindowBaseClass):
         # Init config window
         self.configWindow = ConfigWindow()
         self.configureButton.clicked.connect(self.openConfigWindow)
-
-        # Start daemon
-        self.togglePadmissThread()
 
         # Done!
         log.info("Window initialized")
@@ -255,9 +274,23 @@ class MainWindow(Ui_MainWindow, MainWindowBaseClass):
         else:
             qApp.quit()
 
+    def attemptShow(self):
+        self.configManager = PadmissConfigManager()
+
+        def callBack():
+            self.attemptShow()
+
+        if not self.configManager.hasValidConfig():
+            self.configWindow.callBack = callBack
+            self.openConfigWindow()
+        else:
+            # Start daemon
+            self.togglePadmissThread()
+            self.show()
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     mw = MainWindow()
-    mw.show()
+    mw.attemptShow()
     sys.exit(app.exec())

@@ -9,11 +9,12 @@ import logging, logging.handlers
 import os
 import queue
 import sys
-from PyQt5.QtWidgets import QMainWindow, QApplication, QSystemTrayIcon, QMenu, QAction, QStyle, qApp, QFileDialog
+from PyQt5.QtWidgets import QMainWindow, QApplication, QSystemTrayIcon, QMenu, QAction, QStyle, qApp, QFileDialog, QMessageBox
 from PyQt5.QtCore import QThread, pyqtSignal, Qt
 from PyQt5 import uic
 
 from config import PadmissConfigManager, PadmissConfig, ScannerConfig, DeviceConfig
+from hid import listDevices
 from daemon import PadmissDaemon
 from thread_utils import start_and_wait_for_threads
 
@@ -87,6 +88,7 @@ class ScannerConfigWidget(Ui_ScannerConfigWidget, ScannerConfigWidgetBaseClass):
         self.idProduct.setText(scanner.id_product)
         self.portNumber.setText(str(scanner.port_number) if scanner.port_number is not None else "")
         self.bus.setText(str(scanner.bus) if scanner.bus is not None else "")
+        self.pickDeviceButton.clicked.connect(self.findScanner)
 
     def getConfig(self):
         return ScannerConfig(
@@ -96,6 +98,21 @@ class ScannerConfigWidget(Ui_ScannerConfigWidget, ScannerConfigWidgetBaseClass):
             bus=int(self.bus.text()) if self.bus.text() else None
         )
 
+    def findScanner(self):
+        reply = QMessageBox.information(self, 'Padmiss', 'Make sure the device is disconnected')
+        devices = listDevices()
+        reply = QMessageBox.information(self, 'Padmiss', 'Plug the device in, and wait 5 seconds')
+        newDevices = listDevices()
+
+        new = [x for x in newDevices if x not in devices]
+        if not new:
+            reply = QMessageBox.information(self, 'Padmiss', 'Device not found')
+        else:
+            device = new[0]
+            self.idVendor.setText(device['idVendor'])
+            self.idProduct.setText(device['idProduct'])
+            self.portNumber.setText(str(device['port_number']))
+            self.bus.setText(str(device['bus']))
 
 class DeviceConfigWidget(Ui_DeviceConfigWidget, DeviceConfigWidgetBaseClass):
     def __init__(self, device: DeviceConfig):
@@ -105,12 +122,15 @@ class DeviceConfigWidget(Ui_DeviceConfigWidget, DeviceConfigWidgetBaseClass):
 
         self.device = device
         self.path.setText(device.path)
+        self.browsePath.clicked.connect(self.pickBackupDir)
+
         self.configWidget = None
 
         if device.type == 'scanner':
             self.configWidget = ScannerConfigWidget(device.config)
                 
         self.deviceSpecificContent.addWidget(self.configWidget)
+        self.tabCloseRequested.connect(self.closeTab)
 
     def getConfig(self):
         if self.device.type == 'scanner':
@@ -122,10 +142,15 @@ class DeviceConfigWidget(Ui_DeviceConfigWidget, DeviceConfigWidgetBaseClass):
 
         return None
 
+    def pickBackupDir(self):
+        folder = str(QFileDialog.getExistingDirectory(self, "Select profile directory"))
+        if folder:
+            self.path.setText(folder)
 
 class ConfigWindow(Ui_ConfigWindow, ConfigWindowBaseClass):
     configManager = None
     callBack = None
+    config = None
 
     # Override the class constructor
     def __init__(self):
@@ -138,6 +163,7 @@ class ConfigWindow(Ui_ConfigWindow, ConfigWindowBaseClass):
         self.backup_dir_browse.clicked.connect(self.pickBackupDir)
         self.scores_dir_browse.clicked.connect(self.pickScoresDir)
         self.save.clicked.connect(self.saveAndClose)
+        self.newScannerButton.clicked.connect(self.newScanner)
 
     def showEvent(self, event):
         if self.configManager.hasValidConfig():
@@ -179,21 +205,33 @@ class ConfigWindow(Ui_ConfigWindow, ConfigWindowBaseClass):
         self.configManager.save_config(config)
         self.close()
 
-    def closeEvent(self, event):
-        if self.callBack != None:
-            if not self.configManager.hasValidConfig():
-                event.ignore()
-            else:
-                self.callBack()
-                self.callBack = None
+    #def closeEvent(self, event):
+    #    if self.callBack != None:
+    #        if not self.configManager.hasValidConfig():
+    #            event.ignore()
+    #        else:
+    #            self.callBack()
+    #            self.callBack = None
 
-    def quitEvent(self, event):
-        if self.callBack != None:
-            if not self.configManager.hasValidConfig():
-                event.ignore()
-            else:
-                self.callBack()
-                self.callBack = None
+    #def quitEvent(self, event):
+        #if self.callBack != None:
+        #    if not self.configManager.hasValidConfig():
+        #        event.ignore()
+        #    else:
+        #        self.callBack()
+        #        self.callBack = None
+
+    def newScanner(self):
+        empty = DeviceConfig(
+			type = 'scanner',
+			path = '',
+			config = ScannerConfig(
+				id_vendor = '',
+				id_product = ''
+			)
+		)
+
+        self.deviceTabs.addTab(DeviceConfigWidget(empty), str(len(self.deviceTabs) + 1))
 
 
 class MainWindow(Ui_MainWindow, MainWindowBaseClass):

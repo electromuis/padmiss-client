@@ -147,6 +147,7 @@ class Poller(CancellableThrowingThread):
                 data = self.reader.poll()
                 if data:
                     data = data.strip()
+
                     if data:
                         if self.mounted and self.mounted.mountType == 'card' and self.mounted.rfidUid == data:
                             log.debug('Eject player %s', data)
@@ -160,6 +161,8 @@ class Poller(CancellableThrowingThread):
                             p.mountType = 'card'
                             p.rfidUid = data
                             self.processUser(p, 'card')
+                        else:
+                            log.debug('Player not found for: ' + data)
 
             except Exception:
                 log.exception('Error getting player info from server')

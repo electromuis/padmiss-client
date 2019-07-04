@@ -40,6 +40,8 @@ class PadmissConfig(BaseModel):
         extra: "forbid"
 
 class PadmissConfigManager(object):
+    changed = []
+
     def hasValidConfig(self):
         path = self._get_config_path()
         return os.path.isfile(path)
@@ -103,6 +105,14 @@ class PadmissConfigManager(object):
         with open(path, 'w') as f:
             f.write(config.json(sort_keys=True, indent=4))
 
+        for f in self.changed:
+            f()
+
     def load_config(self):
         self._create_initial_directories_if_necessary()
         return PadmissConfig.parse_file(self._get_config_path())
+
+manager = PadmissConfigManager()
+
+def getManager():
+    return manager

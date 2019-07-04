@@ -28,9 +28,9 @@ class RFIDReader(object):
 
     def _get_find_match(self):
         match = {}
-        if (self.scannerConfig.id_vendor is not None):
+        if (len(self.scannerConfig.id_vendor) != 0):
             match["idVendor"] = int(self.scannerConfig.id_vendor, 16)
-        if (self.scannerConfig.id_product is not None):
+        if (len(self.scannerConfig.id_product) != 0):
             match["idProduct"] = int(self.scannerConfig.id_product, 16)
         if (self.scannerConfig.port_number is not None):
             match["port_number"] = self.scannerConfig.port_number
@@ -52,7 +52,10 @@ class RFIDReader(object):
             return False
 
         log.debug('Found device %s', repr(self.dev))
-        self._find_intf()
+        try:
+            self._find_intf()
+        except RuntimeError:
+            return False
 
         # try:
         #     if self.dev.is_kernel_driver_active(self.intf.bInterfaceNumber):
@@ -93,7 +96,7 @@ class RFIDReader(object):
 
         log.debug('Found it again')
 
-    def poll(self, initial_timeout = 200, key_timeout = 50):
+    def poll(self, initial_timeout = 500, key_timeout = 20):
         typed = []
         timeout = initial_timeout
 

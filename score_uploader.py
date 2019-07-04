@@ -162,27 +162,33 @@ class ScoreUploader(CancellableThrowingThread):
             return
 
         while not self.stop_event.wait(1):
-            for n in os.listdir(self._config.scores_dir):
-                if not n.endswith('.xml'):
-                    continue
-                fn = path.join(self._config.scores_dir, n)
-                try:
-                    log.debug('Uploading score from ' + fn)
+            if os.path.isdir(self._config.scores_dir):
+                for n in os.listdir(self._config.scores_dir):
+                    if not n.endswith('.xml'):
+                        continue
+                    fn = path.join(self._config.scores_dir, n)
+                    try:
+                        log.debug('Uploading score from ' + fn)
 
-                    root = ElementTree.parse(fn).getroot()
-                    upload = parse_upload(root)
-                    playerGuid = text_by_xpath(root, 'PlayerGuid')
-                    player = self._api.get_player(playerGuid)
-                    if player:
-                        log.debug('Uploading score for ' + player.nickname + ': ' + repr(upload))
-                        self._api.post_score(player, upload)
-                    else:
-                        log.warning('Player not found: ' + playerGuid)
+                        root = ElementTree.parse(fn).getroot()
+                        upload = parse_upload(root)
+                        playerGuid = text_by_xpath(root, 'PlayerGuid')
+                        player = self._api.get_player(playerGuid)
+                        if player:
+                            log.debug('Uploading score for ' + player.nickname + ': ' + repr(upload))
+                            self._api.post_score(player, upload)
+                        else:
+                            log.warning('Player not found: ' + playerGuid)
 
-                except:
-                    log.exception('Failed to upload score')
-                    backup = tempfile.mkstemp(suffix='.xml', prefix='failed_', dir=self._config.backup_dir)[1]
-                    shutil.copy(fn, backup)
-                    log.debug('Backed up failed score to ' + backup)
-                        
-                os.remove(fn)
+                    except:
+                        log.exception('Failed to upload score')
+                        backupdir = self._config.backup_dir
+
+                        if not os.path.isdir(backupdir):
+                            os.makedirs(backupdir)
+
+                        backup = tempfile.mkstemp(suffix='.xml', prefix='failed_', dir=backupdir)[1]
+                        shutil.copy(fn, backup)
+                        log.debug('Backed up failed score to ' + backup)
+
+                    os.remove(fn)

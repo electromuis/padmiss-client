@@ -150,7 +150,7 @@ class TournamentApi(object):
 
         filter = {}
         if playerId:
-            filter['playerId'] = playerId
+            filter['_id'] = playerId
         if rfidUid:
             filter['rfidUid'] = rfidUid
         if nickname:

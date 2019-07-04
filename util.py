@@ -4,6 +4,8 @@ import os
 
 from hid import RFIDReader
 from config import PadmissConfig
+import logging
+log = logging.getLogger(__name__)
 
 class FIFOReader(object):
     def __init__(self, path):
@@ -37,7 +39,11 @@ def construct_readers(config: PadmissConfig):
     readers = {}
     for device in config.devices:
         if device.type == "scanner":
-            readers[device.path] = RFIDReader(device.config)
+            try:
+                readers[device.path] = RFIDReader(device.config)
+            except Exception as e:
+                log.debug('Failed constructing reader:')
+                log.debug(str(e))
 #        elif s.type == "fifo":
 #            readers[s["path"]] = FIFOReader(s["config"]["swPath"])
 #        else:

@@ -12,9 +12,10 @@ import sys
 import configparser
 from PyQt5.QtWidgets import QMainWindow, QApplication, QSystemTrayIcon, QMenu, QAction, QStyle, qApp, QFileDialog, QMessageBox
 from PyQt5.QtCore import QThread, pyqtSignal, Qt
-from PyQt5 import uic
+from PyQt5 import uic, QtGui
+import pkgutil
 
-from config import PadmissConfigManager, PadmissConfig, ScannerConfig, DeviceConfig
+from config import PadmissConfig, ScannerConfig, DeviceConfig, getManager
 from hid import listDevices
 from daemon import PadmissDaemon
 from thread_utils import start_and_wait_for_threads
@@ -115,6 +116,18 @@ class ScannerConfigWidget(Ui_ScannerConfigWidget, ScannerConfigWidgetBaseClass):
             self.portNumber.setText(str(device['port_number']))
             self.bus.setText(str(device['bus']))
 
+            if os.name == 'nt':
+                reply = QMessageBox.question(self, 'Padmiss', 'Do you want to install the driver?', QMessageBox.Yes|QMessageBox.No, QMessageBox.No)
+                if reply == QMessageBox.Yes:
+                    QMessageBox.information(self, 'Padmiss',
+                                            'Select the device with USB ID: ' + device['idVendor'].upper() + ' ' +
+                                            device['idProduct'].upper() + ', then click Replace Driver')
+
+                    dir = resource_path('zadig') + '\\'
+                    tool = dir + 'zadig.exe'
+                    import ctypes, sys
+                    ctypes.windll.shell32.ShellExecuteW(None, "runas", tool, dir, dir, 1)
+
 class DeviceConfigWidget(Ui_DeviceConfigWidget, DeviceConfigWidgetBaseClass):
     def __init__(self, device: DeviceConfig):
         ScannerConfigWidgetBaseClass.__init__(self)
@@ -153,11 +166,12 @@ class ConfigWindow(Ui_ConfigWindow, ConfigWindowBaseClass):
     config = None
 
     # Override the class constructor
-    def __init__(self):
+    def __init__(self, mainWindow):
         ConfigWindowBaseClass.__init__(self)
         Ui_ConfigWindow.__init__(self)
         self.setupUi(self)
-        self.configManager = PadmissConfigManager()
+        self.configManager = getManager()
+        self.mainWindow = mainWindow
 
         # Init buttons
         self.backup_dir_browse.clicked.connect(self.pickBackupDir)
@@ -199,6 +213,10 @@ class ConfigWindow(Ui_ConfigWindow, ConfigWindowBaseClass):
         self.configManager.save_config(config)
         self.close()
 
+        if self.callBack:
+            self.callBack()
+            self.callBack = None
+
     def toConfig(self):
         return PadmissConfig(
             padmiss_api_url=self.padmiss_api_url.text(),
@@ -210,29 +228,30 @@ class ConfigWindow(Ui_ConfigWindow, ConfigWindowBaseClass):
             devices=[self.deviceTabs.widget(index).getConfig() for index in range(self.deviceTabs.count())]
         )
 
-    def closeEvent(self, event):
-        if self.callBack != None:
-            if not self.configManager.hasValidConfig():
-                event.ignore()
-            else:
-                self.callBack()
-                self.callBack = None
+    # def closeEvent(self, event):
+    #     if self.callBack != None:
+    #         if not self.configManager.hasValidConfig():
+    #             event.ignore()
 
     def newScanner(self):
+        next = len(self.deviceTabs) + 1
+
         empty = DeviceConfig(
             type = 'scanner',
-            path = '',
+            path = self.configManager._get_path_inside_padmiss_dir('player' + str(next)),
             config = ScannerConfig(
                 id_vendor = '',
                 id_product = ''
             )
         )
 
-        self.deviceTabs.addTab(DeviceConfigWidget(empty), str(len(self.deviceTabs) + 1))
+        for index in range(self.deviceTabs.count()):
+            self.deviceTabs.widget(index).num = index + 1
+
+        self.deviceTabs.addTab(DeviceConfigWidget(empty), str(next))
 
     def fixSm5Config(self):
         file = str(QFileDialog.getOpenFileName(self, "Select Preferences.ini")[0])
-        print(file)
 
         if file:
             myConfig = self.toConfig()
@@ -245,6 +264,10 @@ class ConfigWindow(Ui_ConfigWindow, ConfigWindowBaseClass):
             iniConfig['Options']['MemoryCardPadmissEnabled'] = '1'
             iniConfig['Options']['MemoryCards'] = '1'
             iniConfig['Options']['MemoryCardDriver'] = 'Directory'
+            iniConfig['Options']['MemoryCardProfileSubdir'] = myConfig.profile_dir_name
+
+            self.scores_dir.setText(os.path.dirname(file) + '/Padmiss')
+
             c = 1
             for i, dev in enumerate(myConfig.devices):
                 if dev.type == 'scanner':
@@ -255,9 +278,9 @@ class ConfigWindow(Ui_ConfigWindow, ConfigWindowBaseClass):
                     c = c + 1
 
             with open(file, 'w') as configfile:
-                iniConfig.write(configfile)
+                iniConfig.write(configfile, space_around_delimiters = False)
 
-			QMessageBox.information(self, 'Padmiss', 'Preferences updated!')
+            QMessageBox.information(self, 'Padmiss', 'Preferences updated!')
 
 class MainWindow(Ui_MainWindow, MainWindowBaseClass):
     trayIcon = None
@@ -271,16 +294,25 @@ class MainWindow(Ui_MainWindow, MainWindowBaseClass):
         MainWindowBaseClass.__init__(self)
         Ui_MainWindow.__init__(self)
         self.setupUi(self)
+        getManager().changed.append(self.restartThreads)
+
+        icon = QtGui.QIcon(resource_path('icon.ico'))
+
+        self.setWindowIcon(icon)
 
         # Init log thread
         self.logThread = LogThread()
         self.logThread.log_event.connect(self.newLogEvent)
         self.logThread.start()
 
+        def showMaybe():
+            if not self.configWindow.callBack:
+                self.show()
+
         # Init tray icon
         self.trayIcon = QSystemTrayIcon(self)
-        self.trayIcon.setIcon(self.style().standardIcon(QStyle.SP_ComputerIcon))
-        self.trayIcon.activated.connect(self.show)
+        self.trayIcon.setIcon(icon)
+        self.trayIcon.activated.connect(showMaybe)
         show_action = QAction("Settings...", self)
         quit_action = QAction("Quit", self)
         show_action.triggered.connect(self.show)
@@ -297,7 +329,7 @@ class MainWindow(Ui_MainWindow, MainWindowBaseClass):
         self.startStopButton.clicked.connect(self.togglePadmissThread)
 
         # Init config window
-        self.configWindow = ConfigWindow()
+        self.configWindow = ConfigWindow(self)
         self.configureButton.clicked.connect(self.openConfigWindow)
 
         self.quit.clicked.connect(self.quitEvent)
@@ -329,6 +361,11 @@ class MainWindow(Ui_MainWindow, MainWindowBaseClass):
     def openConfigWindow(self):
         self.configWindow.show()
 
+    def restartThreads(self):
+        self.padmissThread.requestInterruption()
+        self.padmissThread.wait()
+        self.togglePadmissThread()
+
     def quitEvent(self, event):
         self.trayIcon.hide()
         self.padmissThread.finished.connect(qApp.quit)
@@ -340,10 +377,11 @@ class MainWindow(Ui_MainWindow, MainWindowBaseClass):
             qApp.quit()
 
     def attemptShow(self):
-        self.configManager = PadmissConfigManager()
+        self.configManager = getManager()
 
         def callBack():
-            self.attemptShow()
+            self.show()
+            self.togglePadmissThread()
 
         if not self.configManager.hasValidConfig():
             self.configWindow.callBack = callBack

@@ -9,6 +9,7 @@ import logging, logging.handlers
 import os
 import queue
 import sys
+import configparser
 from PyQt5.QtWidgets import QMainWindow, QApplication, QSystemTrayIcon, QMenu, QAction, QStyle, qApp, QFileDialog, QMessageBox
 from PyQt5.QtCore import QThread, pyqtSignal, Qt
 from PyQt5 import uic
@@ -130,7 +131,6 @@ class DeviceConfigWidget(Ui_DeviceConfigWidget, DeviceConfigWidgetBaseClass):
             self.configWidget = ScannerConfigWidget(device.config)
                 
         self.deviceSpecificContent.addWidget(self.configWidget)
-        self.tabCloseRequested.connect(self.closeTab)
 
     def getConfig(self):
         if self.device.type == 'scanner':
@@ -164,6 +164,7 @@ class ConfigWindow(Ui_ConfigWindow, ConfigWindowBaseClass):
         self.scores_dir_browse.clicked.connect(self.pickScoresDir)
         self.save.clicked.connect(self.saveAndClose)
         self.newScannerButton.clicked.connect(self.newScanner)
+        self.sm5_config.clicked.connect(self.fixSm5Config)
 
     def showEvent(self, event):
         if self.configManager.hasValidConfig():
@@ -177,6 +178,7 @@ class ConfigWindow(Ui_ConfigWindow, ConfigWindowBaseClass):
         self.profile_dir_name.setText(config.profile_dir_name)
         self.backup_dir.setText(config.backup_dir)
         self.scores_dir.setText(config.scores_dir)
+        self.hide_on_start.setChecked(config.hide_on_start)
 
         self.deviceTabs.clear()
         for i, device in enumerate(config.devices):
@@ -193,46 +195,69 @@ class ConfigWindow(Ui_ConfigWindow, ConfigWindowBaseClass):
             self.scores_dir.setText(folder)
 
     def saveAndClose(self):
-        config = PadmissConfig(
+        config = self.toConfig()
+        self.configManager.save_config(config)
+        self.close()
+
+    def toConfig(self):
+        return PadmissConfig(
             padmiss_api_url=self.padmiss_api_url.text(),
             api_key=self.api_key.text(),
             scores_dir=self.scores_dir.text(),
             backup_dir=self.backup_dir.text(),
             profile_dir_name=self.profile_dir_name.text(),
+            hide_on_start=self.hide_on_start.isChecked(),
             devices=[self.deviceTabs.widget(index).getConfig() for index in range(self.deviceTabs.count())]
         )
 
-        self.configManager.save_config(config)
-        self.close()
-
-    #def closeEvent(self, event):
-    #    if self.callBack != None:
-    #        if not self.configManager.hasValidConfig():
-    #            event.ignore()
-    #        else:
-    #            self.callBack()
-    #            self.callBack = None
-
-    #def quitEvent(self, event):
-        #if self.callBack != None:
-        #    if not self.configManager.hasValidConfig():
-        #        event.ignore()
-        #    else:
-        #        self.callBack()
-        #        self.callBack = None
+    def closeEvent(self, event):
+        if self.callBack != None:
+            if not self.configManager.hasValidConfig():
+                event.ignore()
+            else:
+                self.callBack()
+                self.callBack = None
 
     def newScanner(self):
         empty = DeviceConfig(
-			type = 'scanner',
-			path = '',
-			config = ScannerConfig(
-				id_vendor = '',
-				id_product = ''
-			)
-		)
+            type = 'scanner',
+            path = '',
+            config = ScannerConfig(
+                id_vendor = '',
+                id_product = ''
+            )
+        )
 
         self.deviceTabs.addTab(DeviceConfigWidget(empty), str(len(self.deviceTabs) + 1))
 
+    def fixSm5Config(self):
+        file = str(QFileDialog.getOpenFileName(self, "Select Preferences.ini")[0])
+        print(file)
+
+        if file:
+            myConfig = self.toConfig()
+
+            iniConfig = configparser.ConfigParser()
+            iniConfig.optionxform = lambda option: option
+
+            iniConfig.read(file)
+            iniConfig['Options']['MemoryCardProfiles'] = '1'
+            iniConfig['Options']['MemoryCardPadmissEnabled'] = '1'
+            iniConfig['Options']['MemoryCards'] = '1'
+            iniConfig['Options']['MemoryCardDriver'] = 'Directory'
+            c = 1
+            for i, dev in enumerate(myConfig.devices):
+                if dev.type == 'scanner':
+                    iniConfig['Options']['MemoryCardUsbBusP' + str(c)] = '-1'
+                    iniConfig['Options']['MemoryCardUsbBusP' + str(c)] = '-1'
+                    iniConfig['Options']['MemoryCardUsbPortP' + str(c)] = '-1'
+                    iniConfig['Options']['MemoryCardOsMountPointP' + str(c)] = dev.path
+                    c = c + 1
+
+            with open(file, 'w') as configfile:
+                iniConfig.write(configfile)
+
+			QMessageBox.information(self, 'Padmiss', 'Preferences updated!')
 
 class MainWindow(Ui_MainWindow, MainWindowBaseClass):
     trayIcon = None
@@ -274,6 +299,8 @@ class MainWindow(Ui_MainWindow, MainWindowBaseClass):
         # Init config window
         self.configWindow = ConfigWindow()
         self.configureButton.clicked.connect(self.openConfigWindow)
+
+        self.quit.clicked.connect(self.quitEvent)
 
         # Done!
         log.info("Window initialized")
@@ -322,9 +349,12 @@ class MainWindow(Ui_MainWindow, MainWindowBaseClass):
             self.configWindow.callBack = callBack
             self.openConfigWindow()
         else:
+            config = self.configManager.load_config()
+
             # Start daemon
             self.togglePadmissThread()
-            self.show()
+            if not config.hide_on_start:
+                self.show()
 
 
 if __name__ == "__main__":

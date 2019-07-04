@@ -33,6 +33,7 @@ class PadmissConfig(BaseModel):
     scores_dir: str
     backup_dir: str
     profile_dir_name: str
+    hide_on_start: bool
     devices: List[DeviceConfig]
 
     class Config:
@@ -59,6 +60,7 @@ class PadmissConfigManager(object):
             scores_dir='',
             backup_dir=self._get_path_inside_padmiss_dir('backups'),
             profile_dir_name='StepMania 5',
+            hide_on_start=False,
             devices=[]
         )
 
@@ -91,6 +93,10 @@ class PadmissConfigManager(object):
 
 
     def save_config(self, config):
+        folder = self._get_path_inside_padmiss_dir()
+        if not os.path.isdir(folder):
+            os.makedirs(folder)
+
         path = self._get_config_path()
         log.info("Saving to: " + path)
 

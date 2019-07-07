@@ -25,7 +25,7 @@ class PadmissDaemon(CancellableThrowingThread):
         pollers = [Poller(config, side, reader) for side, reader in readers.items()]
 
         # initialize score uploader
-        score_uploader = ScoreUploader(config)
+        score_uploader = ScoreUploader(config, pollers)
         threads = pollers + [score_uploader]
 
         start_and_wait_for_threads(threads, lambda: self.stop_event.is_set())

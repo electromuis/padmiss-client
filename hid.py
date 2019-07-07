@@ -57,19 +57,21 @@ class RFIDReader(object):
         except RuntimeError:
             return False
 
-        # try:
-        #     if self.dev.is_kernel_driver_active(self.intf.bInterfaceNumber):
-        #         log.debug('Detaching kernel driver from %s', repr(self))
-        #         self.dev.detach_kernel_driver(self.intf.bInterfaceNumber)
-        #         self.detached = True
-        #     except NotImplementedError:
-        #         log.debug('Detaching kernel driver not supported on this platform')
-        # try:
-        #     log.debug('Setting BOOT protocol on %s', repr(self))
-        #     self.dev.ctrl_transfer(0b00100001, 0x0B, 0, self.intf.bInterfaceNumber, 0)
-        # except:
-        #     self.release()
-        #     raise
+        if os.name != 'nt':
+            try:
+                if self.dev.is_kernel_driver_active(self.intf.bInterfaceNumber):
+                    log.debug('Detaching kernel driver from %s', repr(self))
+                    self.dev.detach_kernel_driver(self.intf.bInterfaceNumber)
+                    self.detached = True
+            except NotImplementedError:
+                log.debug('Detaching kernel driver not supported on this platform')
+
+        try:
+            log.debug('Setting BOOT protocol on %s', repr(self))
+            self.dev.ctrl_transfer(0b00100001, 0x0B, 0, self.intf.bInterfaceNumber, 0)
+        except:
+            self.release()
+            raise
 
         return True
 
@@ -161,14 +163,16 @@ class RFIDReader(object):
 
     def release(self):
         usb.util.dispose_resources(self.dev)
-        if self.detached:
-            log.debug('Reattaching kernel driver to %s', repr(self))
-            try:
-                self.dev.attach_kernel_driver(self.intf.bInterfaceNumber)
-            except usb.core.USBError:
-                log.exception('Error while reattaching kernel driver')
-            finally:
-                self.detached = False
+
+        if os.name != 'nt':
+            if self.detached:
+                log.debug('Reattaching kernel driver to %s', repr(self))
+                try:
+                    self.dev.attach_kernel_driver(self.intf.bInterfaceNumber)
+                except usb.core.USBError:
+                    log.exception('Error while reattaching kernel driver')
+                finally:
+                    self.detached = False
 
 
     def __repr__(self):

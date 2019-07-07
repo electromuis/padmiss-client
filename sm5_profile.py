@@ -3,6 +3,8 @@
 import binascii
 from os import path, makedirs
 from xml.etree.ElementTree import Element, SubElement, tostring, parse
+from api import TournamentApi
+from config import PadmissConfigManager
 
 from api import ScoreBreakdown, Score, Song, ChartUpload, TimingWindows
 
@@ -60,8 +62,12 @@ class SLIni():
 
 		for mod in score['modsOther']:
 			if mod['name'] == 'EFFECT_MINI':
-				value = int(mod['value'] * 100)
+				value = int(float(mod['value']) * 100)
 				self.__fields__['Mini'] = str(value) + '%'
+
+		for mod in score['modsOther']:
+			if mod['name'][0:3] == 'SL:':
+				self.__fields__[mod['name'][3:]] = mod['value']
 
 def generate_statsxml(player, score):
 	stats = Element('Stats')
@@ -136,7 +142,9 @@ def parse_profile_scores(dirname):
 
 
 if __name__ == '__main__':
-#	print tostring(generate_statsxml('Testaaja', '123456789abcdefgh'))
-#	print generate_editableini('Testaaja')
-	generate_profile('/tmp/p1/StepMania 5', 'Testaaja', '5ad12d9f07b73e108861bf9b')
-#	parse_profile_scores('/tmp/p1/StepMania 5')
+	config = PadmissConfigManager().load_config()
+	api = TournamentApi(config.padmiss_api_url, config.api_key)
+	score = api.get_last_sore('5ad12d9f07b73e108861bf9b')
+
+	ini = generate_sl_ini(score)
+	print(ini)

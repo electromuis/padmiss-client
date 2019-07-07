@@ -194,57 +194,39 @@ class TournamentApi(object):
         return tuple((Score(**score) for score in j['highScores']))
 
     def get_last_sore(self, playerId):
-        return None
-
         filter = {"player": playerId}
-
-        result = self.graph.execute('''
+        req = '''
         {
           Scores (sort: "-playedAt", limit: 1, queryString: ''' + json.dumps(json.dumps(filter)) + ''') {
             docs {
-              stepChart {
-                song {
-                  title
-                  artist
-                }
-              }
-              isRecalced
+              scoreValue
               originalScore
               stepsInfo
-              modTurn
-              modMines
-              modAttacks
+              noteSkin
               playedAt
+              modsTurn
+              modsTransform
+              modsOther {
+                name
+                value
+              }
+              speedMod {
+                type
+                value
+              }
             }
           }
         }
-        ''')
-        print(('''
-        {
-          Scores (sort: "-playedAt", limit: 1, queryString: ''' + json.dumps(json.dumps(filter)) + ''') {
-            docs {
-              stepChart {
-                song {
-                  title
-                  artist
-                }
-              }
-              isRecalced
-              originalScore
-              stepsInfo
-              modTurn
-              modMines
-              modAttacks
-              playedAt
-            }
-          }
-        }
-        '''))
-        scores = json.loads(result)['data']['Scores']['docs']
+        '''
 
-        if len(scores) != 1:
-            return None
-        return scores[0]
+        print (req)
+        result = self.graph.execute(req)
+        scores = json.loads(result)
+
+        if scores['data']['Scores']:
+            return scores['data']['Scores']['docs'][0]
+
+        return None
 
     def post_score(self, player, upload):
         data = {

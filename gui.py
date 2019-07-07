@@ -10,7 +10,8 @@ import os
 import queue
 import sys
 import configparser
-from PyQt5.QtWidgets import QMainWindow, QApplication, QSystemTrayIcon, QMenu, QAction, QStyle, qApp, QFileDialog, QMessageBox
+import getpass
+from PyQt5.QtWidgets import QMainWindow, QApplication, QSystemTrayIcon, QMenu, QAction, QStyle, qApp, QFileDialog, QMessageBox, QInputDialog
 from PyQt5.QtCore import QThread, pyqtSignal, Qt
 from PyQt5 import uic, QtGui
 import pkgutil
@@ -127,6 +128,35 @@ class ScannerConfigWidget(Ui_ScannerConfigWidget, ScannerConfigWidgetBaseClass):
                     tool = dir + 'zadig.exe'
                     import ctypes, sys
                     ctypes.windll.shell32.ShellExecuteW(None, "runas", tool, dir, dir, 1)
+            # else:
+            #     rulePath = '/etc/udev/rules.d/99-usbgroup'
+            #
+            #     if not os.path.isfile(rulePath):
+            #         reply = QMessageBox.question(self, 'Padmiss', 'Do you want to fix device permissions via udev?',
+            #                                      QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+            #         if reply == QMessageBox.Yes:
+            #             try :
+            #                 cmd = "echo 'SUBSYSTEM==\"usb\", ENV{DEVTYPE}==\"usb_device\", MODE=\"0664\", GROUP=\"usbusers\"' > " + rulePath
+            #                 password = False
+            #
+            #                 os.system(cmd)
+            #                 if not os.path.isfile(rulePath):
+            #                     password = QInputDialog.getText(self, 'Padmiss', 'Please enter your sudo password')
+            #                     if not password:
+            #                         raise Exception('No password entered')
+            #
+            #                     cmd = 'sudo -S ' + cmd
+            #                     os.popen(cmd, 'w').write(password)
+            #
+            #                     if not os.path.isfile(rulePath):
+            #                         raise Exception('wrong password?')
+            #
+            #
+            #
+            #
+            #             except Exception as e:
+            #                 QMessageBox.information(self, 'Padmiss', 'Failed: ' + str(e))
+
 
 class DeviceConfigWidget(Ui_DeviceConfigWidget, DeviceConfigWidgetBaseClass):
     def __init__(self, device: DeviceConfig):

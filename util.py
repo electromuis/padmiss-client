@@ -3,28 +3,28 @@
 import os
 
 from hid import RFIDReader
-from config import PadmissConfig
+from config import PadmissConfig, ScannerConfig
 import logging
 log = logging.getLogger(__name__)
 
 class FIFOReader(object):
-    def __init__(self, path):
-        self.path = path
-        self.match = {}
+    def __init__(self, scannerConfig: ScannerConfig):
+        self.scannerConfig = scannerConfig
+
         try:
-            os.remove(path)
+            os.remove(self.scannerConfig.file_path)
         except:
             pass
-        os.mkfifo(path)
+        os.mkfifo(self.scannerConfig.file_path)
 
 
     def poll(self):
-        with open(self.path, 'r') as fh:
+        with open(self.scannerConfig.file_path, 'r') as fh:
             return fh.readline()
 
 
     def release(self):
-        os.remove(self.path)
+        os.remove(self.scannerConfig.file_path)
 
 
 class NULLReader(object):
@@ -44,8 +44,12 @@ def construct_readers(config: PadmissConfig):
             except Exception as e:
                 log.debug('Failed constructing reader:')
                 log.debug(str(e))
-#        elif s.type == "fifo":
-#            readers[s["path"]] = FIFOReader(s["config"]["swPath"])
+        elif device.type == "fifo":
+            try:
+                readers[device.path] = FIFOReader(device.config)
+            except Exception as e:
+                log.debug('Failed constructing reader:')
+                log.debug(str(e))
 #        else:
 #            readers[s["path"]] = NULLReader(**s["config"])
     return readers

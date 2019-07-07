@@ -5,6 +5,7 @@ import shutil
 import logging
 import tempfile
 import threading
+import configparser
 
 from os import path
 from time import sleep
@@ -149,10 +150,21 @@ def parse_upload(root):
 
 
 class ScoreUploader(CancellableThrowingThread):
-    def __init__(self, config):
+    def __init__(self, config, pollers):
         super().__init__()
         self._config = config
+        self._pollers = pollers
         self.setName(__name__)
+
+    def append_profile_data(self, poller, upload):
+        iniFile = path.join(poller.profilePath, self._config.profile_dir_name, 'Simply Love UserPrefs.ini')
+        if path.isfile(iniFile):
+            iniConfig = configparser.ConfigParser(strict=False, interpolation=None)
+            iniConfig.optionxform = lambda option: option
+            iniConfig.read(iniFile)
+            for k, v in iniConfig.items('Simply Love'):
+                upload.modsOther.append(dict(name='SL:' + k, value=v))
+
 
     def exc_run(self):
         self._api = TournamentApi(self._config.padmiss_api_url, self._config.api_key)
@@ -175,6 +187,12 @@ class ScoreUploader(CancellableThrowingThread):
                         playerGuid = text_by_xpath(root, 'PlayerGuid')
                         player = self._api.get_player(playerGuid)
                         if player:
+                            for p in self._pollers:
+                                if p.mounted and p.mounted._id == player._id:
+                                    self.append_profile_data(p, upload)
+                                    break
+
+
                             log.debug('Uploading score for ' + player.nickname + ': ' + repr(upload))
                             self._api.post_score(player, upload)
                         else:

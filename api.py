@@ -223,7 +223,7 @@ class TournamentApi(object):
         result = self.graph.execute(req)
         scores = json.loads(result)
 
-        if len(scores['data']['Scores']['docs']) > 0:
+        if scores['data']['Scores']:
             return scores['data']['Scores']['docs'][0]
 
         return None

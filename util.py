@@ -29,7 +29,7 @@ class FIFOReader(object):
         return "".join(map(chr, buffer))
 
     def __del__(self):
-        self.file.close()
+        os.close(self.file)
         os.remove(self.path)
 
     def release(self):

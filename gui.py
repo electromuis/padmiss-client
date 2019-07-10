@@ -182,6 +182,8 @@ class DeviceConfigWidget(Ui_DeviceConfigWidget, DeviceConfigWidgetBaseClass):
                 path = self.path.text(),
                 config = self.configWidget.getConfig()
             )
+        elif self.device.type == 'fifo':
+            return self.device
 
         return None
 
@@ -300,12 +302,11 @@ class ConfigWindow(Ui_ConfigWindow, ConfigWindowBaseClass):
 
             c = 1
             for i, dev in enumerate(myConfig.devices):
-                if dev.type == 'scanner':
-                    iniConfig['Options']['MemoryCardUsbBusP' + str(c)] = '-1'
-                    iniConfig['Options']['MemoryCardUsbBusP' + str(c)] = '-1'
-                    iniConfig['Options']['MemoryCardUsbPortP' + str(c)] = '-1'
-                    iniConfig['Options']['MemoryCardOsMountPointP' + str(c)] = dev.path
-                    c = c + 1
+                iniConfig['Options']['MemoryCardUsbBusP' + str(c)] = '-1'
+                iniConfig['Options']['MemoryCardUsbBusP' + str(c)] = '-1'
+                iniConfig['Options']['MemoryCardUsbPortP' + str(c)] = '-1'
+                iniConfig['Options']['MemoryCardOsMountPointP' + str(c)] = dev.path
+                c = c + 1
 
             with open(file, 'w') as configfile:
                 iniConfig.write(configfile, space_around_delimiters = False)

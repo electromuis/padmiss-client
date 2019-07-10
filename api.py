@@ -219,7 +219,6 @@ class TournamentApi(object):
         }
         '''
 
-        print (req)
         result = self.graph.execute(req)
         scores = json.loads(result)
 

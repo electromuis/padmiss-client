@@ -55,8 +55,7 @@ class Poller(CancellableThrowingThread):
                     i = i + 1
                     log.debug(p)
                     u = urllib.request.urlopen(p)
-                    meta = u.info()
-                    if int(meta.getheaders("Content-Length")[0]) > 1024 * 1024 * 10:
+                    if int(u.getheader("Content-Length")) > 1024 * 1024 * 10:
                         log.debug('Toobig')
                     continue
                     file_name = p.split('/')[-1]

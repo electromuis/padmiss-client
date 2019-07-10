@@ -13,7 +13,12 @@ class ScannerConfig(BaseModel):
     id_product: str
     port_number: Optional[int]
     bus: Optional[int]
-    file_path: Optional[str]
+
+    class Config:
+        extra = "forbid"
+
+class FifoConfig(BaseModel):
+    path: str
 
     class Config:
         extra = "forbid"
@@ -22,7 +27,8 @@ class ScannerConfig(BaseModel):
 class DeviceConfig(BaseModel):
     path: str
     type: str
-    config: ScannerConfig # for now.
+    config: Optional[ScannerConfig]
+    fifo_config: Optional[FifoConfig]
 
     class Config:
         extra = "forbid"

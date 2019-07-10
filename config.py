@@ -17,11 +17,18 @@ class ScannerConfig(BaseModel):
     class Config:
         extra = "forbid"
 
+class FifoConfig(BaseModel):
+    path: str
+
+    class Config:
+        extra = "forbid"
+
 
 class DeviceConfig(BaseModel):
     path: str
-    type: str = Schema("scanner", const=True) # for now.
-    config: ScannerConfig # for now.
+    type: str
+    config: Optional[ScannerConfig]
+    fifo_config: Optional[FifoConfig]
 
     class Config:
         extra = "forbid"

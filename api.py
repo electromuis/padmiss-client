@@ -80,7 +80,8 @@ class Score(FlattenedBase):
     __fields__ = {
         'scoreBreakdown' : ScoreBreakdown,
         'scoreValue'     : None,
-        'passed'         : None
+        'passed'         : None,
+        'secondsSurvived': None
     }
 
 
@@ -233,6 +234,7 @@ class TournamentApi(object):
             'playerId': player._id,
             'scoreValue' : upload.score.scoreValue,
             'passed' : upload.score.passed,
+            'secondsSurvived': upload.score.secondsSurvived
         }
         data.update(upload.score.scoreBreakdown.__dict__)
         data.update(upload.song.__dict__)

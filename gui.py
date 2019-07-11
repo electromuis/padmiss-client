@@ -319,6 +319,7 @@ class MainWindow(Ui_MainWindow, MainWindowBaseClass):
     padmissThread = None
     configWindow = None
     configManager = None
+    threadStoppedHook = None
 
     # Override the class constructor
     def __init__(self):
@@ -370,16 +371,17 @@ class MainWindow(Ui_MainWindow, MainWindowBaseClass):
 
     def padmissDaemonFinished(self):
         self.startStopButton.setDisabled(False)
+        self.startStopButton.setStyleSheet("background-color: red")
         self.startStopButton.setText('Start')
+        if self.threadStoppedHook is not None:
+            self.threadStoppedHook()
+            self.threadStoppedHook = None
 
     def togglePadmissThread(self):
         if self.padmissThread.isRunning():
-            self.startStopButton.setDisabled(True)
-            self.startStopButton.setText('Stopping...')
-            self.padmissThread.requestInterruption()
+            self.stopThread()
         else:
-            self.startStopButton.setText('Stop')
-            self.padmissThread.start()
+            self.startThread()
 
     def newLogEvent(self, data):
         self.logView.appendPlainText(data)
@@ -392,10 +394,21 @@ class MainWindow(Ui_MainWindow, MainWindowBaseClass):
     def openConfigWindow(self):
         self.configWindow.show()
 
-    def restartThreads(self):
+    def stopThread(self):
+        self.startStopButton.setDisabled(True)
+        self.startStopButton.setStyleSheet("background-color: grey")
+        self.startStopButton.setText('Stopping...')
         self.padmissThread.requestInterruption()
-        self.padmissThread.wait()
-        self.togglePadmissThread()
+
+    def startThread(self):
+        self.startStopButton.setStyleSheet("background-color: green")
+        self.startStopButton.setText('Stop')
+        self.padmissThread.start()
+
+    def restartThreads(self):
+        if self.padmissThread.isRunning():
+            self.threadStoppedHook = self.startThread
+            self.stopThread()
 
     def quitEvent(self, event):
         self.trayIcon.hide()

@@ -16,7 +16,7 @@ from thread_utils import CancellableThrowingThread
 
 log = logging.getLogger(__name__)
 text_by_xpath = lambda parent, xpath: parent.find(xpath).text
-
+bool_by_xpath = lambda parent, xpath: parent.find(xpath).text == '1'
 
 def xpath_items(root, items, mapper):
     return { typ: mapper(text_by_xpath(root, path)) for typ, path in items.items() }
@@ -43,10 +43,12 @@ def parse_score(root):
         'handsTotal'   : 'RadarPossible/RadarValues/Hands'
     }
     breakdown = ScoreBreakdown(**xpath_items(root, tap_to_path, int))
+    log.debug(bool_by_xpath(root, 'Passed'))
     score = Score(
             scoreBreakdown=breakdown,
             scoreValue=float(text_by_xpath(root, 'ScoreValue')),
-            passed=False
+            passed=bool_by_xpath(root, 'Passed'),
+            secondsSurvived=float(text_by_xpath(root, 'SecondsSurvived'))
             )
     return score
 

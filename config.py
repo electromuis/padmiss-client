@@ -14,25 +14,14 @@ class ScannerConfig(BaseModel):
     port_number: Optional[int]
     bus: Optional[int]
 
-    class Config:
-        extra = "forbid"
-
 class FifoConfig(BaseModel):
     path: str
-
-    class Config:
-        extra = "forbid"
-
 
 class DeviceConfig(BaseModel):
     path: str
     type: str
     config: Optional[ScannerConfig]
     fifo_config: Optional[FifoConfig]
-
-    class Config:
-        extra = "forbid"
-
 
 class PadmissConfig(BaseModel):
     padmiss_api_url: UrlStr
@@ -42,9 +31,6 @@ class PadmissConfig(BaseModel):
     profile_dir_name: str
     hide_on_start: bool
     devices: List[DeviceConfig]
-
-    class Config:
-        extra: "forbid"
 
 class PadmissConfigManager(object):
     changed = []

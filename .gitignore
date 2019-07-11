@@ -1,6 +1,7 @@
 .*.sw?
 *.pyc
 *.spec
+!gui.spec
 build
 dist
 Backup

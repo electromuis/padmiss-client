@@ -57,7 +57,7 @@ class Poller(CancellableThrowingThread):
                     u = urllib.request.urlopen(p)
                     if int(u.getheader("Content-Length")) > 1024 * 1024 * 10:
                         log.debug('Toobig')
-                    continue
+                        continue
                     file_name = p.split('/')[-1]
                     ext = path.splitext(file_name)[1]
                     if ext != '.zip':

@@ -122,6 +122,7 @@ class ChartUpload(Base):
         'stepArtist'    : None,
         'song'          : Song,
         'score'         : Score,
+        'group'         : None,
         'cabSide'       : None,
         'speedMod'      : None,
         'musicRate'     : None,
@@ -234,7 +235,8 @@ class TournamentApi(object):
             'playerId': player._id,
             'scoreValue' : upload.score.scoreValue,
             'passed' : upload.score.passed,
-            'secondsSurvived': upload.score.secondsSurvived
+            'secondsSurvived': upload.score.secondsSurvived,
+            'group': upload.group
         }
         data.update(upload.score.scoreBreakdown.__dict__)
         data.update(upload.song.__dict__)

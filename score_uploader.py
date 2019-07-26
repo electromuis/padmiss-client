@@ -138,6 +138,7 @@ def parse_upload(root):
             stepArtist    = text_by_xpath(root, 'Steps/StepArtist'),
             song          = parse_song(root),
             score         = parse_score(root),
+            group         = text_by_xpath(root, 'Steps/Group'),
             cabSide       = parse_cabside(root),
             speedMod      = parse_speedmod(root),
             musicRate     = float(text_by_xpath(root, 'Mods/MusicRate')),

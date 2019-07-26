@@ -42,20 +42,21 @@ class SLIni():
 		return ret
 	
 	def from_score(self, score):
-		if score['speedMod']['type'] == 'MaxBPM':
-			self.__fields__['SpeedModType'] = 'M'
-		if score['speedMod']['type'] == 'Multiplier':
-			self.__fields__['SpeedModType'] = 'X'
-		if score['speedMod']['type'] == 'ConstantBPM':
-			self.__fields__['SpeedModType'] = 'C'
+		if score['speedMod']:
+			if score['speedMod']['type'] == 'MaxBPM':
+				self.__fields__['SpeedModType'] = 'M'
+			if score['speedMod']['type'] == 'Multiplier':
+				self.__fields__['SpeedModType'] = 'X'
+			if score['speedMod']['type'] == 'ConstantBPM':
+				self.__fields__['SpeedModType'] = 'C'
 
-		speed = float(score['speedMod']['value'])
-		if speed > 0:
-			if self.__fields__['SpeedModType'] == 'X':
-				speed = int(speed * 100) / 100
-			else:
-				speed = int(speed)
-			self.__fields__['SpeedMod'] = str(speed)
+			speed = float(score['speedMod']['value'])
+			if speed > 0:
+				if self.__fields__['SpeedModType'] == 'X':
+					speed = int(speed * 100) / 100
+				else:
+					speed = int(speed)
+				self.__fields__['SpeedMod'] = str(speed)
 
 		if score['noteSkin']:
 			self.__fields__['NoteSkin'] = score['noteSkin']
@@ -77,10 +78,11 @@ def generate_statsxml(player, score):
 	if score != None:
 		modifiers = SubElement(general, 'DefaultModifiers')
 		mods = []
-		if score['speedMod']['type'] == 'MaxBPM':
-			mods.append('m' + str(score['speedMod']['value']))
-		if score['speedMod']['type'] == 'Multiplier':
-			mods.append(str(score['speedMod']['value']) + 'x')
+		if score['speedMod']:
+			if score['speedMod']['type'] == 'MaxBPM':
+				mods.append('m' + str(score['speedMod']['value']))
+			if score['speedMod']['type'] == 'Multiplier':
+				mods.append(str(score['speedMod']['value']) + 'x')
 		mods.append('Overhead')
 		if score['noteSkin']:
 			mods.append(score['noteSkin'])
@@ -122,7 +124,7 @@ def generate_profile(api, dirname, player):
 		card.write('E004' + hex_player_id.zfill(12)[0:12])
 
 	ini = generate_sl_ini(score)
-	if ini != None:
+	if ini != None and score != None:
 		with open(path.join(dirname, 'Simply Love UserPrefs.ini'), 'w') as slini:
 			slini.write(ini)
 

@@ -9,13 +9,13 @@ log = logging.getLogger(__name__)
 
 class FIFOReader(object):
     def __init__(self, config):
-        log.debug('reader')
+        self.file = None
         self.path = config.path
         try:
             os.remove(self.path)
         except Exception as e:
             log.debug(str(e))
-        
+
         os.mkfifo(self.path)
         self.file = os.open(self.path, os.O_RDONLY | os.O_NONBLOCK)
 
@@ -29,8 +29,10 @@ class FIFOReader(object):
         return "".join(map(chr, buffer))
 
     def __del__(self):
-        os.close(self.file)
-        os.remove(self.path)
+        if self.file:
+            os.close(self.file)
+        if os.path.exists(self.path):
+            os.remove(self.path)
 
     def release(self):
         log.debug('released')
@@ -42,6 +44,9 @@ class NULLReader(object):
 
     def poll(self):
         return
+
+    def release(self):
+        log.debug('released')
 
 
 def construct_readers(config: PadmissConfig):
@@ -55,6 +60,7 @@ def construct_readers(config: PadmissConfig):
                 log.debug(str(e))
         elif device.type == "fifo":
             readers[device.path] = FIFOReader(device.fifo_config)
-#        else:
+        elif device.type == "dummy":
+            readers[device.path] = NULLReader()
 #            readers[s["path"]] = NULLReader(**s["config"])
     return readers

@@ -26,7 +26,7 @@ class Poller(CancellableThrowingThread):
     def __init__(self, config, profilePath, reader):
         super().__init__()
         self.setName('Poller')
-        self.api = TournamentApi(config.padmiss_api_url, config.api_key)
+        self.api = TournamentApi(config)
         self.config = config
         self.profilePath = profilePath
         self.reader = reader
@@ -88,7 +88,7 @@ class Poller(CancellableThrowingThread):
         if newUser and (self.mounted is None or self.mounted._id != newUser._id):
             log.debug('Mounting to SM5')
 
-            if type == 'card':
+            if type == 'card' or type == 'service':
                 makedirs(self.profilePath)
                 profileSMPath = path.join(self.profilePath, self.config.profile_dir_name)
                 generate_profile(self.api, profileSMPath, newUser)

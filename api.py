@@ -2,11 +2,15 @@
 
 import requests
 import json
+import logging
+import socket
 from graphqlclient import GraphQLClient
+
+log = logging.getLogger(__name__)
+
 
 class Base(object):
     __repr_suppress__ = set()
-
 
     def __init__(self, **kwargs):
         for k, c in self.__fields__.items():
@@ -16,17 +20,16 @@ class Base(object):
                 else:
                     val = c
             else:
-                    val = kwargs[k]
+                val = kwargs[k]
             if c and isinstance(val, dict):
                 val = c(**val)
             setattr(self, k, val)
 
-
     def __repr__(self):
         return '(%s %s)' % (
-                type(self).__name__ ,
-                ' '.join('%s=%s' % (k, repr(v)) for k, v in self.__dict__.items() if not k in self.__repr_suppress__)
-                )
+            type(self).__name__,
+            ' '.join('%s=%s' % (k, repr(v)) for k, v in self.__dict__.items() if not k in self.__repr_suppress__)
+        )
 
 
 class FlattenedBase(Base):
@@ -35,11 +38,11 @@ class FlattenedBase(Base):
 
 class Player(FlattenedBase):
     __fields__ = {
-        'nickname' : None,
-        'shortNickname' : '',
+        'nickname': None,
+        'shortNickname': '',
         'rfidUid': '',
-        '_id'      : None,
-	    'metaData' : "{}",
+        '_id': None,
+        'metaData': "{}",
         'mountType': False
     }
 
@@ -56,82 +59,81 @@ class Player(FlattenedBase):
 
 class ScoreBreakdown(FlattenedBase):
     __fields__ = {
-        'fantastics'   : None,
-        'excellents'   : None,
-        'greats'       : None,
-        'decents'      : None,
-        'wayoffs'      : None,
-        'misses'       : None,
-        'holds'        : None,
-        'holdsTotal'   : None,
-        'minesHit'     : None,
-        'minesAvoided' : None,
-        'minesTotal'   : None,
-        'rolls'        : None,
-        'rollsTotal'   : None,
-        'jumps'        : None,
-        'jumpsTotal'   : None,
-        'hands'        : None,
-        'handsTotal'   : None
+        'fantastics': None,
+        'excellents': None,
+        'greats': None,
+        'decents': None,
+        'wayoffs': None,
+        'misses': None,
+        'holds': None,
+        'holdsTotal': None,
+        'minesHit': None,
+        'minesAvoided': None,
+        'minesTotal': None,
+        'rolls': None,
+        'rollsTotal': None,
+        'jumps': None,
+        'jumpsTotal': None,
+        'hands': None,
+        'handsTotal': None
     }
 
 
 class Score(FlattenedBase):
     __fields__ = {
-        'scoreBreakdown' : ScoreBreakdown,
-        'scoreValue'     : None,
-        'passed'         : None,
+        'scoreBreakdown': ScoreBreakdown,
+        'scoreValue': None,
+        'passed': None,
         'secondsSurvived': None
     }
 
 
 class Song(FlattenedBase):
     __fields__ = {
-        'title'                   : None,
-        'titleTransliteration'    : None,
-        'subTitle'                : None,
-        'subTitleTransliteration' : None,
-        'artist'                  : None,
-        'artistTransliteration'   : None,
-        'durationSeconds'         : None
+        'title': None,
+        'titleTransliteration': None,
+        'subTitle': None,
+        'subTitleTransliteration': None,
+        'artist': None,
+        'artistTransliteration': None,
+        'durationSeconds': None
     }
 
 
 class TimingWindows(Base):
     __fields__ = {
-        'fantasticTimingWindow' : None,
-        'excellentTimingWindow' : None,
-        'greatTimingWindow'     : None,
-        'decentTimingWindow'    : None,
-        'wayoffTimingWindow'    : None,
-        'mineTimingWindow'      : None,
-        'holdTimingWindow'      : None,
-        'rollTimingWindow'      : None
+        'fantasticTimingWindow': None,
+        'excellentTimingWindow': None,
+        'greatTimingWindow': None,
+        'decentTimingWindow': None,
+        'wayoffTimingWindow': None,
+        'mineTimingWindow': None,
+        'holdTimingWindow': None,
+        'rollTimingWindow': None
     }
 
 
 class ChartUpload(Base):
     __repr_suppress__ = set(('stepData',))
 
-
     __fields__ = {
-        'hash'          : None,
-        'meter'         : None,
-        'playMode'      : None,
-        'stepData'      : None,
-        'stepArtist'    : None,
-        'song'          : Song,
-        'score'         : Score,
-        'group'         : None,
-        'cabSide'       : None,
-        'speedMod'      : None,
-        'musicRate'     : None,
-        'modsTurn'      : None,
-        'modsTransform' : None,
-        'modsOther'     : None,
-        'noteSkin'      : None,
-        'perspective'   : None,
-        'timingWindows' : TimingWindows
+        'hash': None,
+        'meter': None,
+        'playMode': None,
+        'stepData': None,
+        'stepArtist': None,
+        'song': Song,
+        'score': Score,
+        'group': None,
+        'cabSide': None,
+        'speedMod': None,
+        'musicRate': None,
+        'modsTurn': None,
+        'modsTransform': None,
+        'modsOther': None,
+        'noteSkin': None,
+        'perspective': None,
+        'timingWindows': TimingWindows
     }
 
 
@@ -140,16 +142,31 @@ class TournamentApiError(Exception):
 
 
 class TournamentApi(object):
-    def __init__(self, url, key):
-        self.url = url
-        self.key = key
-        self.graph = GraphQLClient(url + '/graphiql')
+    def __init__(self, config):
+        self.url = config.padmiss_api_url
+        self.key = config.api_key
+        self.graph = GraphQLClient(self.url + '/graphiql')
+        self.exUrl = 'https://electromuis1.openode.io'
 
+    def broadcast(self):
+        try:
+            data = {
+                'token': self.key,
+                'ip': socket.gethostbyname(socket.gethostname())
+            }
+
+            r = requests.post(self.exUrl + '/broadcast-cab', json=data)
+
+            j = r.json()
+            if j['status'] != 'OK':
+                raise Exception('No ok status: ' + r.text)
+
+            return True
+        except Exception as e:
+            log.debug('Broadcast failed: ' + str(e))
+            return False
 
     def get_player(self, playerId=None, rfidUid=None, nickname=None):
-        # r = requests.get(self.url + '/api/players', params={ '_id' : playerId, 'rfidUid' : rfidUid, 'nickname' : nickname })
-        # matches = r.json()
-
         filter = {}
         if playerId:
             filter['_id'] = playerId
@@ -180,13 +197,15 @@ class TournamentApi(object):
           }
         }
         ''')
-        matches = json.loads(result)['data']['Players']['docs']
 
-        if len(matches) != 1:
+        data = json.loads(result)
+        if 'data' not in data:
             return None
 
-        return Player(**matches[0])
+        if not data['data']['Players'] or len(data['data']['Players']['docs']) != 1:
+            return None
 
+        return Player(**data['data']['Players']['docs'][0])
 
     def get_player_highscores(self, playerId):
         r = requests.get(self.url + '/api/players/%s/highscores' % playerId)
@@ -224,6 +243,9 @@ class TournamentApi(object):
         result = self.graph.execute(req)
         scores = json.loads(result)
 
+        if 'data' not in scores or not scores['data']['Scores']['docs']:
+            return None
+
         if len(scores['data']['Scores']['docs']) > 0:
             return scores['data']['Scores']['docs'][0]
 
@@ -231,18 +253,18 @@ class TournamentApi(object):
 
     def post_score(self, player, upload):
         data = {
-            'apiKey' : self.key,
+            'apiKey': self.key,
             'playerId': player._id,
-            'scoreValue' : upload.score.scoreValue,
-            'passed' : upload.score.passed,
+            'scoreValue': upload.score.scoreValue,
+            'passed': upload.score.passed,
             'secondsSurvived': upload.score.secondsSurvived,
             'group': upload.group
         }
         data.update(upload.score.scoreBreakdown.__dict__)
         data.update(upload.song.__dict__)
-        data.update({ k: v for k, v in upload.__dict__.items() if not isinstance(v, FlattenedBase)  })
+        data.update({k: v for k, v in upload.__dict__.items() if not isinstance(v, FlattenedBase)})
         dumpable = lambda v: v.__dict__ if isinstance(v, Base) else v
-        r = requests.post(self.url + '/post-score', json={ k: dumpable(v) for k, v in data.items() if v is not None })
+        r = requests.post(self.url + '/post-score', json={k: dumpable(v) for k, v in data.items() if v is not None})
         j = r.json()
         if j['success'] != True:
             raise TournamentApiError(j['message'])
@@ -250,6 +272,7 @@ class TournamentApi(object):
 
 if __name__ == '__main__':
     import logging
+
     logging.basicConfig(level=logging.DEBUG)
     api = TournamentApi('http://localhost:3020', 've324mkvvk4k')
     p = api.get_player(nickname='hippaheikki')
@@ -258,36 +281,36 @@ if __name__ == '__main__':
     if p:
         print(api.get_player_highscores(p._id))
     breakdown = ScoreBreakdown(
-        fantastics = 10,
-        excellents = 9,
-        greats     = 8,
-        decents    = 7,
-        wayoffs    = 6,
-        misses     = 5,
-        holds      = 4,
-        holdsTotal = 6,
-        minesHit   = 0,
-        rolls      = 3,
-        rollsTotal = 6
+        fantastics=10,
+        excellents=9,
+        greats=8,
+        decents=7,
+        wayoffs=6,
+        misses=5,
+        holds=4,
+        holdsTotal=6,
+        minesHit=0,
+        rolls=3,
+        rollsTotal=6
     )
     score = Score(scoreBreakdown=breakdown, scoreValue=99.9, passed=False)
     song = Song(
-        title                   = 'kukkuu',
-        titleTransliteration    = None,
-        subTitle                = 'subi',
-        subTitleTransliteration = None,
-        artist                  = 'artisti maksaa',
-        artistTransliteration   = None,
-        durationSeconds         = 123,
+        title='kukkuu',
+        titleTransliteration=None,
+        subTitle='subi',
+        subTitleTransliteration=None,
+        artist='artisti maksaa',
+        artistTransliteration=None,
+        durationSeconds=123,
     )
     chart = ChartUpload(
-        hash            = 12345,
-        meter           = 12,
-        playMode        = 'Single',
-        stepData        = '0010',
-        stepArtist      = 'steppaaja',
-        song            = song,
-        score           = score,
-        cabSide         = 'Left'
+        hash=12345,
+        meter=12,
+        playMode='Single',
+        stepData='0010',
+        stepArtist='steppaaja',
+        song=song,
+        score=score,
+        cabSide='Left'
     )
     api.post_score(p, chart)

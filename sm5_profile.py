@@ -145,7 +145,7 @@ def parse_profile_scores(dirname):
 
 if __name__ == '__main__':
 	config = PadmissConfigManager().load_config()
-	api = TournamentApi(config.padmiss_api_url, config.api_key)
+	api = TournamentApi(config)
 	score = api.get_last_sore('5ad12d9f07b73e108861bf9b')
 
 	ini = generate_sl_ini(score)

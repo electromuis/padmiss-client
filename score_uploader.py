@@ -6,10 +6,12 @@ import logging
 import tempfile
 import threading
 import configparser
+import json
 
 from os import path
 from time import sleep
 from xml.etree import ElementTree
+import urllib.request, urllib.error, urllib.parse
 
 from api import TournamentApi, ScoreBreakdown, Score, Song, ChartUpload, TimingWindows
 from thread_utils import CancellableThrowingThread
@@ -168,6 +170,60 @@ class ScoreUploader(CancellableThrowingThread):
             for k, v in iniConfig.items('Simply Love'):
                 upload.modsOther.append(dict(name='SL:' + k, value=v))
 
+    def handle_score(self, fn):
+        try:
+            log.debug('Uploading score from ' + fn)
+
+            root = ElementTree.parse(fn).getroot()
+            upload = parse_upload(root)
+            playerGuid = text_by_xpath(root, 'PlayerGuid')
+            player = self._api.get_player(playerGuid)
+            if player:
+                for p in self._pollers:
+                    if p.mounted and p.mounted._id == player._id:
+                        self.append_profile_data(p, upload)
+                        break
+
+                log.debug('Uploading score for ' + player.nickname + ': ' + repr(upload))
+                self._api.post_score(player, upload)
+            else:
+                log.warning('Player not found: ' + playerGuid)
+
+        except:
+            log.exception('Failed to upload score')
+            backupdir = self._config.backup_dir
+
+            if not os.path.isdir(backupdir):
+                os.makedirs(backupdir)
+
+            backup = tempfile.mkstemp(suffix='.xml', prefix='failed_', dir=backupdir)[1]
+            shutil.copy(fn, backup)
+            log.debug('Backed up failed score to ' + backup)
+
+        os.remove(fn)
+
+    def handle_json(self, fn):
+        scores_dir = self._config.scores_dir
+
+        try:
+            log.debug('Handling json from ' + fn)
+            f = open(fn, "r")
+            request = json.load(f)
+            f.close()
+
+            if request['type'] == 'http':
+                u = urllib.request.urlopen(request['url'])
+                response = u.read()
+                jsono = path.join(scores_dir, request['identifier'] + '.jsono')
+                f = open(jsono, "wb")
+                f.write(response)
+                f.close()
+            else:
+                raise Exception('Unknown request type')
+        except:
+            log.exception('Failed to handle json')
+
+        os.remove(fn)
 
     def exc_run(self):
         self._api = TournamentApi(self._config)
@@ -179,37 +235,11 @@ class ScoreUploader(CancellableThrowingThread):
         while not self.stop_event.wait(1):
             if os.path.isdir(self._config.scores_dir):
                 for n in os.listdir(self._config.scores_dir):
-                    if not n.endswith('.xml'):
-                        continue
                     fn = path.join(self._config.scores_dir, n)
-                    try:
-                        log.debug('Uploading score from ' + fn)
 
-                        root = ElementTree.parse(fn).getroot()
-                        upload = parse_upload(root)
-                        playerGuid = text_by_xpath(root, 'PlayerGuid')
-                        player = self._api.get_player(playerGuid)
-                        if player:
-                            for p in self._pollers:
-                                if p.mounted and p.mounted._id == player._id:
-                                    self.append_profile_data(p, upload)
-                                    break
+                    if n.endswith('.xml'):
+                        self.handle_score(fn)
 
+                    if n.endswith('.jsoni'):
+                        self.handle_json(fn)
 
-                            log.debug('Uploading score for ' + player.nickname + ': ' + repr(upload))
-                            self._api.post_score(player, upload)
-                        else:
-                            log.warning('Player not found: ' + playerGuid)
-
-                    except:
-                        log.exception('Failed to upload score')
-                        backupdir = self._config.backup_dir
-
-                        if not os.path.isdir(backupdir):
-                            os.makedirs(backupdir)
-
-                        backup = tempfile.mkstemp(suffix='.xml', prefix='failed_', dir=backupdir)[1]
-                        shutil.copy(fn, backup)
-                        log.debug('Backed up failed score to ' + backup)
-
-                    os.remove(fn)

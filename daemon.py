@@ -7,7 +7,7 @@ from config import PadmissConfigManager
 from new_poller import Poller
 from score_uploader import ScoreUploader
 from thread_utils import CancellableThrowingThread, start_and_wait_for_threads
-from socket_server import RestServerThread
+#from socket_server import RestServerThread
 from util import construct_readers
 
 log = logging.getLogger(__name__)
@@ -26,10 +26,10 @@ class PadmissDaemon(CancellableThrowingThread):
         pollers = [Poller(config, side, reader) for side, reader in readers.items()]
 
         # initialize http servers
-        rest_server = RestServerThread(pollers)
+        #rest_server = RestServerThread(pollers)
 
         # initialize score uploader
         score_uploader = ScoreUploader(config, pollers)
-        threads = pollers + [rest_server, score_uploader]
+        threads = pollers + [score_uploader]
 
         start_and_wait_for_threads(threads, lambda: self.stop_event.is_set())

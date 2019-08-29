@@ -205,6 +205,9 @@ class ConfigWindow(Ui_ConfigWindow, ConfigWindowBaseClass):
         self.configManager = getManager()
         self.mainWindow = mainWindow
 
+        icon = QtGui.QIcon(resource_path('icon.ico'))
+        self.setWindowIcon(icon)
+
         # Init buttons
         self.backup_dir_browse.clicked.connect(self.pickBackupDir)
         self.scores_dir_browse.clicked.connect(self.pickScoresDir)
@@ -329,7 +332,6 @@ class MainWindow(Ui_MainWindow, MainWindowBaseClass):
         getManager().changed.append(self.restartThreads)
 
         icon = QtGui.QIcon(resource_path('icon.ico'))
-
         self.setWindowIcon(icon)
 
         # Init log thread

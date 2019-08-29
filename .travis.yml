@@ -7,12 +7,12 @@ install:
   - /c/Python37/Scripts/pip install pyinstaller
 
 script:
-  - /c/Python37/Scripts/pyinstaller --onefile --noconsole --add-data="*.ui;." --name="padmiss-daemon" gui.py
+  - /c/Python37/Scripts/pyinstaller gui.spec
 
 deploy:
   provider: releases
   api_key: "GITHUB OAUTH TOKEN" # insert one here.
-  file: "dist/padmiss-daemon.exe"
+  file: "dist/Padmiss.exe"
   skip_cleanup: true
   draft: true
 

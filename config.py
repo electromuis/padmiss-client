@@ -30,6 +30,7 @@ class PadmissConfig(BaseModel):
     backup_dir: str
     profile_dir_name: str
     hide_on_start: bool
+    webserver: Optional[bool]
     devices: List[DeviceConfig]
 
 class PadmissConfigManager(object):
@@ -56,6 +57,7 @@ class PadmissConfigManager(object):
             backup_dir=self._get_path_inside_padmiss_dir('backups'),
             profile_dir_name='StepMania 5',
             hide_on_start=False,
+            webserver=False,
             devices=[]
         )
 

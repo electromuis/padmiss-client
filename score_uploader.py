@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python
 
 import os
@@ -212,9 +213,22 @@ class ScoreUploader(CancellableThrowingThread):
             f.close()
 
             if request['type'] == 'http':
-                u = urllib.request.urlopen(request['url'])
-                response = u.read()
-                jsono = path.join(scores_dir, request['identifier'] + '.jsono')
+                req = None
+
+                if request['method'] == 'POST' and 'payload' in request:
+                    log.debug(request['payload'])
+                    req = urllib.request.Request(request['url'], data=request['payload'].encode('utf-8'))
+                else:
+                    req = urllib.request.Request(request['url'])
+
+                try:
+                    u = urllib.request.urlopen(req)
+                    response = u.read()
+                except Exception as e:
+                    log.exception('Failed handling SM json: ' + str(e))
+                    response = ''.encode('utf-8')
+
+                jsono = path.join(scores_dir, str(request['identifier']) + '.jsono')
                 f = open(jsono, "wb")
                 f.write(response)
                 f.close()
@@ -223,7 +237,7 @@ class ScoreUploader(CancellableThrowingThread):
         except:
             log.exception('Failed to handle json')
 
-        os.remove(fn)
+        #os.remove(fn)
 
     def exc_run(self):
         self._api = TournamentApi(self._config)

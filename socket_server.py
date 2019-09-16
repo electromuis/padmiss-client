@@ -136,8 +136,6 @@ class RestServerThread(CancellableThrowingThread):
         self.api = TournamentApi(config.PadmissConfigManager().load_config())
 
     def exc_run(self):
-        log.info("Starting Poller")
-
         RestServer.pollers = self.pollers
         httpd = HTTPServer((HOST_NAME, PORT_NUMBER), RestServer)
         lastPing = 0
@@ -147,7 +145,7 @@ class RestServerThread(CancellableThrowingThread):
             httpd.handle_request()
 
             if time.time() > (lastPing + 25):
-                self.api.broadcast()
+                # self.api.broadcast()
                 lastPing = time.time()
 
         httpd.server_close()

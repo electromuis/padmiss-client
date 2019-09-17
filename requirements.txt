@@ -5,3 +5,4 @@ requests==2.18.4
 PyQt5==5.12.2
 pydantic==0.28
 websockets==8.0.2
+serial==0.0.97

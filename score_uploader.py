@@ -214,12 +214,15 @@ class ScoreUploader(CancellableThrowingThread):
 
             if request['type'] == 'http':
                 req = None
+                headers = {}
+                if 'headers' in request:
+                    headers = request['headers']
 
                 if request['method'] == 'POST' and 'payload' in request:
                     log.debug(request['payload'])
-                    req = urllib.request.Request(request['url'], data=request['payload'].encode('utf-8'))
+                    req = urllib.request.Request(request['url'], data=request['payload'].encode('utf-8'), headers=headers)
                 else:
-                    req = urllib.request.Request(request['url'])
+                    req = urllib.request.Request(request['url'], headers=headers)
 
                 try:
                     u = urllib.request.urlopen(req)
@@ -237,7 +240,7 @@ class ScoreUploader(CancellableThrowingThread):
         except:
             log.exception('Failed to handle json')
 
-        #os.remove(fn)
+        os.remove(fn)
 
     def exc_run(self):
         self._api = TournamentApi(self._config)

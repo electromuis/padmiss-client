@@ -23,6 +23,12 @@ class DeviceConfig(BaseModel):
     config: Optional[ScannerConfig]
     fifo_config: Optional[FifoConfig]
 
+class RestConfig(BaseModel):
+    host: str
+    port: int
+    broadcast: bool
+    enabled: bool
+
 class PadmissConfig(BaseModel):
     padmiss_api_url: UrlStr
     api_key: str
@@ -30,7 +36,7 @@ class PadmissConfig(BaseModel):
     backup_dir: str
     profile_dir_name: str
     hide_on_start: bool
-    webserver: Optional[bool]
+    webserver: Optional[RestConfig]
     devices: List[DeviceConfig]
 
 class PadmissConfigManager(object):

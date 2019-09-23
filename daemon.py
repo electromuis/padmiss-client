@@ -30,7 +30,7 @@ class PadmissDaemon(CancellableThrowingThread):
         threads = pollers + [score_uploader]
 
         # initialize http servers
-        if config.webserver:
+        if config.webserver and config.webserver.enabled:
             from socket_server import RestServerThread
             threads.append(RestServerThread(pollers))
 

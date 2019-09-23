@@ -228,8 +228,8 @@ class ConfigWindow(Ui_ConfigWindow, ConfigWindowBaseClass):
         self.backup_dir.setText(config.backup_dir)
         self.scores_dir.setText(config.scores_dir)
         self.hide_on_start.setChecked(config.hide_on_start)
-        if config.webserver:
-            self.webserver.setChecked(config.webserver)
+        # if config.webserver:
+        #     self.webserver.setChecked(config.webserver)
 
         self.deviceTabs.clear()
         for i, device in enumerate(config.devices):
@@ -262,7 +262,7 @@ class ConfigWindow(Ui_ConfigWindow, ConfigWindowBaseClass):
             backup_dir=self.backup_dir.text(),
             profile_dir_name=self.profile_dir_name.text(),
             hide_on_start=self.hide_on_start.isChecked(),
-            webserver=self.webserver.isChecked(),
+            # webserver=self.webserver.isChecked(),
             devices=[self.deviceTabs.widget(index).getConfig() for index in range(self.deviceTabs.count())]
         )
 

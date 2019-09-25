@@ -1,19 +1,13 @@
-import asyncio
 import websockets
-import time
-import json
+import time, json, config, socket, logging
+from mako.template import Template
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from thread_utils import CancellableThrowingThread
-import config
 from api import TournamentApi
-import socket
-
-import logging
+from fsr import fsrio
+from util import resource_path
 
 log = logging.getLogger(__name__)
-
-# HOST_NAME = socket.gethostbyname(socket.gethostname())
-# PORT_NUMBER = 9000
 
 class ServiceException(Exception):
     pass
@@ -68,6 +62,24 @@ class RestServer(BaseHTTPRequestHandler):
                 resp['name'] = 'Padmiss daemon'
                 resp['version'] = '1.0'
                 resp['ip'] = socket.gethostbyname(socket.gethostname())
+            elif path == '/pads/list':
+                pads = []
+                i = 1
+
+                for p in fsrio.detectPads():
+                    pads.append({
+                        'side': p.side,
+                        'number': i,
+                        'port': p.port
+                    })
+                    i += 1
+
+                resp['pads'] = pads
+            elif path == '/pads/gui':
+                #todo output raw html
+                tpl = Template(file=resource_path('web/pad.html'))
+                resp = tpl.render()
+
             elif path == '/players':
                 players = {}
                 i = 1

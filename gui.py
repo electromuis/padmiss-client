@@ -5,11 +5,8 @@ Initial code from https://evileg.com/en/post/68/.
 """
 
 import io
-import logging, logging.handlers
-import os
-import queue
-import sys
-import configparser
+import logging, logging.handlers, os, queue, configparser
+
 import getpass
 from PyQt5.QtWidgets import QMainWindow, QApplication, QSystemTrayIcon, QMenu, QAction, QStyle, qApp, QFileDialog, QMessageBox, QInputDialog
 from PyQt5.QtCore import QThread, pyqtSignal, Qt
@@ -20,19 +17,9 @@ from config import PadmissConfig, ScannerConfig, DeviceConfig, getManager
 from hid import listDevices
 from daemon import PadmissDaemon
 from thread_utils import start_and_wait_for_threads
+from util import resource_path
 
 log = logging.getLogger(__name__)
-
-# from https://stackoverflow.com/a/51061279
-def resource_path(relative_path):
-    """ Get absolute path to resource, works for dev and for PyInstaller """
-    try:
-        # PyInstaller creates a temp folder and stores path in _MEIPASS
-        base_path = sys._MEIPASS
-    except Exception:
-        base_path = os.path.abspath(".")
-
-    return os.path.join(base_path, relative_path)
 
 #
 # Threads

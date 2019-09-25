@@ -6,7 +6,8 @@ added_files = [
     ('icon.ico', '.'),
     ('*.ui', '.'),
     ('*.dll', '.'),
-    ('zadig/*', 'zadig')
+    ('zadig/*', 'zadig'),
+    ('web/*', 'web')
 ]
 
 

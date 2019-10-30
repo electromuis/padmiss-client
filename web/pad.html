@@ -1,8 +1,8 @@
 <html>
 	<head>
-		<link rel="stylesheet" type="text/css" href="../styles/styles.css">
-		<script src="../js/jquery-3.2.1.min.js"></script>
-		<script src="../js/scripts.js"></script>
+		<link rel="stylesheet" type="text/css" href="/styles/styles.css">
+		<script src="/js/jquery-3.2.1.min.js"></script>
+		<script src="/js/scripts.js"></script>
 	</head>
 
 	<body>
@@ -10,17 +10,7 @@
 			<div style="display: table-cell; vertical-align: top; width: 120px; height: 590px">
 			</div>
 			<div style="display: table-cell;">
-				<div class="mainhead"><img src="../img/smallpad.png" style="margin-right: 20px;">[[CAB NAME]]</div>
-				<div>
-					<div class="hcell" style="border-top: 2px solid #020a12; border-right: 2px solid #020a12; width: 240px; display: table-cell;">
-					</div>
-					<div class="hcell" style="border-top: 2px solid #020a12; width: 358px; display: table-cell;">
-						<form action="user.py" method="get">
-							<input type="text" name="new_user"> <input type="submit" value="Create User">
-						</form>
-					</div>
-				</div>
-
+				<div class="mainhead"><img src="../img/smallpad.png" style="margin-right: 20px;">${pad.port}</div>
 				<form action="/pad1/retrieval.py" method="get">
 
 					<div style= "margin: 4px 0px 4px 0px;">

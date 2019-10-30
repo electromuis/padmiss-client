@@ -173,22 +173,32 @@ class ScoreUploader(CancellableThrowingThread):
 
     def handle_score(self, fn):
         try:
-            log.debug('Uploading score from ' + fn)
-
             root = ElementTree.parse(fn).getroot()
             upload = parse_upload(root)
-            playerGuid = text_by_xpath(root, 'PlayerGuid')
-            player = self._api.get_player(playerGuid)
-            if player:
-                for p in self._pollers:
-                    if p.mounted and p.mounted._id == player._id:
-                        self.append_profile_data(p, upload)
-                        break
 
-                log.debug('Uploading score for ' + player.nickname + ': ' + repr(upload))
-                self._api.post_score(player, upload)
+            total = upload.score.fantastics + \
+                    upload.score.excellents + \
+                    upload.score.greats + \
+                    upload.score.decents + \
+                    upload.score.wayoffs
+
+            if total == 0:
+                log.debug('Skipping empty score: ' + fn)
             else:
-                log.warning('Player not found: ' + playerGuid)
+                log.debug('Uploading score from: ' + fn)
+
+                playerGuid = text_by_xpath(root, 'PlayerGuid')
+                player = self._api.get_player(playerGuid)
+                if player:
+                    for p in self._pollers:
+                        if p.mounted and p.mounted._id == player._id:
+                            self.append_profile_data(p, upload)
+                            break
+
+                    log.debug('Uploading score for ' + player.nickname + ': ' + repr(upload))
+                    self._api.post_score(player, upload)
+                else:
+                    log.warning('Player not found: ' + playerGuid)
 
         except:
             log.exception('Failed to upload score')

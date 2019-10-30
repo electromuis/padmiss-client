@@ -6,7 +6,8 @@ import logging
 import time
 import os
 from pprint import pprint
-from config import PadmissConfig, ScannerConfig
+from config import PadmissConfig, ScannerConfig, DeviceConfig
+import scandrivers.driver
 
 log = logging.getLogger(__name__)
 
@@ -19,9 +20,11 @@ def listDevices():
         ret.append({'idVendor': vendor, 'idProduct': product, 'port_number': d.port_number, 'bus': d.bus})
     return ret
 
-class RFIDReader(object):
-    def __init__(self, scannerConfig: ScannerConfig):
-        self.scannerConfig = scannerConfig
+class RFIDReader(scandrivers.driver.ScanDriver):
+    def __init__(self, config: DeviceConfig):
+        super(RFIDReader, self).__init__(config)
+        self.scannerConfig = config.scannerConfig
+
         result = self.connect()
         if result == False:
             raise RuntimeError('Not found')

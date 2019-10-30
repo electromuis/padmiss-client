@@ -1,18 +1,23 @@
 import websockets
 import time, json, config, socket, logging
 from mako.template import Template
-from http.server import BaseHTTPRequestHandler, HTTPServer
+from http.server import BaseHTTPRequestHandler, HTTPServer, SimpleHTTPRequestHandler
 from thread_utils import CancellableThrowingThread
 from api import TournamentApi
 from fsr import fsrio
 from util import resource_path
+from urllib.parse import urlparse, parse_qs
 
 log = logging.getLogger(__name__)
+DIRECTORY = resource_path('web')
 
 class ServiceException(Exception):
     pass
 
-class RestServer(BaseHTTPRequestHandler):
+class RestServer(SimpleHTTPRequestHandler):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, directory=DIRECTORY, **kwargs)
+
     def do_HEAD(self):
         self.send_response(200)
 
@@ -22,16 +27,11 @@ class RestServer(BaseHTTPRequestHandler):
         self.end_headers()
 
     def do_GET(self):
-        paths = {
-            '/info': {'status': 200}
-        }
+        response = self.respond(None)
+        if response == False:
+            return super().do_GET()
 
-        if self.path in paths:
-            self.respond(paths[self.path], None)
-        else:
-            self.respond({'status': 404}, None)
-
-    def do_POST(self):
+    def do_POST(self, request):
         paths = {
             '/check_in': {'status': 200},
             '/check_out': {'status': 200}
@@ -49,13 +49,14 @@ class RestServer(BaseHTTPRequestHandler):
                 log.debug('Invalid json received')
                 data = None
 
-        if self.path in paths:
-            self.respond(paths[self.path], data)
-        else:
-            self.respond({'status': 404}, data)
+        self.respond(data)
 
-    def handle_http(self, status_code, path, data):
+    def handle_http(self, data):
         resp = {'status': 'OK'}
+        uri = urlparse(self.path)
+        path = uri.path
+        query = parse_qs(uri.query)
+        status_code = 200
 
         try:
             if path == '/info':
@@ -76,9 +77,16 @@ class RestServer(BaseHTTPRequestHandler):
 
                 resp['pads'] = pads
             elif path == '/pads/gui':
-                #todo output raw html
-                tpl = Template(file=resource_path('web/pad.html'))
-                resp = tpl.render()
+                if 'pad' in query:
+                    pad = fsrio.getPad(query['pad'][0])
+                    if pad == False:
+                        raise ServiceException('Pad not found')
+
+                    tpl = Template(filename=resource_path('web/pad.html'))
+                    resp = tpl.render(pad = pad)
+                else:
+                    tpl = Template(filename=resource_path('web/pads.html'))
+                    resp = tpl.render(pads = fsrio.detectPads())
 
             elif path == '/players':
                 players = {}
@@ -122,26 +130,34 @@ class RestServer(BaseHTTPRequestHandler):
                 resp['message'] = 'Checked out'
 
             else:
-                raise ServiceException('Unknown action')
+                return False
 
         except ServiceException as e:
             status_code = 500
             resp['status'] = 'ERR'
             resp['message'] = str(e)
 
-        content = json.dumps(resp)
-
         self.send_response(status_code)
         self.send_header('Access-Control-Allow-Origin', '*')
-        self.send_header('Content-Type', 'application/json')
+
+        if type(resp) == str:
+            content = resp
+        else:
+            self.send_header('Content-Type', 'application/json')
+            content = json.dumps(resp)
+
         self.send_header('Content-Length', len(content))
         self.end_headers()
 
         return bytes(content, 'UTF-8')
 
-    def respond(self, opts, data):
-        response = self.handle_http(opts['status'], self.path, data)
+    def respond(self, data):
+        response = self.handle_http(data)
+        if response == False:
+            return response
+
         self.wfile.write(response)
+        return True
 
 
 class RestServerThread(CancellableThrowingThread):

@@ -4,17 +4,15 @@ Padmiss daemon, GUI version.
 Initial code from https://evileg.com/en/post/68/.
 """
 
-import io
+import sys
 import logging, logging.handlers, os, queue, configparser
 
-import getpass
-from PyQt5.QtWidgets import QMainWindow, QApplication, QSystemTrayIcon, QMenu, QAction, QStyle, qApp, QFileDialog, QMessageBox, QInputDialog
-from PyQt5.QtCore import QThread, pyqtSignal, Qt
+from PyQt5.QtWidgets import QApplication, QSystemTrayIcon, QMenu, QAction, qApp, QFileDialog, QMessageBox
+from PyQt5.QtCore import QThread, pyqtSignal
 from PyQt5 import uic, QtGui
-import pkgutil
 
 from config import PadmissConfig, ScannerConfig, DeviceConfig, getManager
-from hid import listDevices
+from scandrivers.hid import listDevices
 from daemon import PadmissDaemon
 from thread_utils import start_and_wait_for_threads
 from util import resource_path

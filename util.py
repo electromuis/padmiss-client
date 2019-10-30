@@ -2,7 +2,7 @@
 
 import os
 import sys
-from hid import RFIDReader
+from scandrivers.hid import RFIDReader
 from config import PadmissConfig
 import logging, time
 log = logging.getLogger(__name__)
@@ -65,7 +65,7 @@ def construct_readers(config: PadmissConfig):
     for device in config.devices:
         if device.type == "scanner":
             try:
-                readers[device.path] = RFIDReader(device.config)
+                readers[device.path] = RFIDReader(device)
             except Exception as e:
                 log.debug('Failed constructing reader:')
                 log.debug(str(e))

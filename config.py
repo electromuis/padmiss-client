@@ -17,11 +17,15 @@ class ScannerConfig(BaseModel):
 class FifoConfig(BaseModel):
     path: str
 
+class UsbConfig(BaseModel):
+    hw_path: str
+
 class DeviceConfig(BaseModel):
     path: str
     type: str
     config: Optional[ScannerConfig]
     fifo_config: Optional[FifoConfig]
+    usb_config: Optional[UsbConfig]
 
 class RestConfig(BaseModel):
     host: str

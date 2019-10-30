@@ -29,8 +29,29 @@ class Poller(CancellableThrowingThread):
         self.api = TournamentApi(config)
         self.config = config
         self.profilePath = profilePath
+        reader.poller = self
         self.reader = reader
+        self.drivers = [reader]
         self.mounted = None
+
+    def checkIn(self, player):
+        if self.mounted:
+            if not self.mounted.driver.checkOut(player):
+                return False
+
+        self.mounted = player
+        return True
+
+    def checkOut(self):
+        if self.mounted and not self.mounted.driver.checkOut():
+            return False
+
+        self.mounted = None
+        return True
+
+    def exc_run_new(self):
+        for d in self.drivers:
+            d.update()
 
     def exc_run(self):
         log.info("Starting Poller")

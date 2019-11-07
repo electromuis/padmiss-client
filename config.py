@@ -117,6 +117,4 @@ class PadmissConfigManager(object):
         return PadmissConfig.parse_file(self._get_config_path())
 
 manager = PadmissConfigManager()
-
-def getManager():
-    return manager
+globalConfig = manager.load_config()

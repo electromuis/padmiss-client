@@ -1,6 +1,12 @@
 {
     "api_key": "8G705LUE53BB3OWCL1D0UUYHQCUVPDYK",
     "backup_dir": "/home/itg/.padmiss/backups",
+    "webserver": {
+        "enabled": true,
+        "broadcast": true,
+        "host": "192.168.1.101",
+        "port": "8123"
+    },
     "devices": [
         {
             "config": {

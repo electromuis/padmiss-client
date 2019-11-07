@@ -9,14 +9,26 @@ from util import resource_path
 
 log = logging.getLogger(__name__)
 
+globalConfig = config.globalConfig
+
 class ServiceException(Exception):
     pass
 
 class RestServer(BaseHTTPRequestHandler):
+    def do_OPTIONS(self):
+        self.send_response(200)
+
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Headers', '*')
+        self.send_header('Content-Type', 'application/json')
+
+        self.end_headers()
+
     def do_HEAD(self):
         self.send_response(200)
 
         self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Headers', '*')
         self.send_header('Content-Type', 'application/json')
 
         self.end_headers()
@@ -61,7 +73,7 @@ class RestServer(BaseHTTPRequestHandler):
             if path == '/info':
                 resp['name'] = 'Padmiss daemon'
                 resp['version'] = '1.0'
-                resp['ip'] = socket.gethostbyname(socket.gethostname())
+                resp['ip'] = globalConfig.webserver.host + ':' + str(globalConfig.webserver.port)
             elif path == '/pads/list':
                 pads = []
                 i = 1
@@ -132,6 +144,7 @@ class RestServer(BaseHTTPRequestHandler):
         content = json.dumps(resp)
 
         self.send_response(status_code)
+        self.send_header('Access-Control-Allow-Headers', '*')
         self.send_header('Access-Control-Allow-Origin', '*')
         self.send_header('Content-Type', 'application/json')
         self.send_header('Content-Length', len(content))
@@ -149,7 +162,7 @@ class RestServerThread(CancellableThrowingThread):
         super().__init__()
         self.setName('Rest server')
         self.pollers = pollers
-        self.config = config.PadmissConfigManager().load_config()
+        self.config = globalConfig
         self.api = TournamentApi(self.config)
 
     def exc_run(self):

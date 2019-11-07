@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Padmiss Daemon</string>
+   <string>Padmiss Configuration</string>
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QVBoxLayout" name="verticalLayout">
@@ -121,7 +121,7 @@
     <item>
      <widget class="QPushButton" name="sm5_config">
       <property name="text">
-       <string>Fix SM5 Config</string>
+       <string>Update SM5 Preferences.ini</string>
       </property>
      </widget>
     </item>

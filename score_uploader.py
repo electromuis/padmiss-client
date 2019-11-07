@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python
 
 import os
@@ -212,9 +213,25 @@ class ScoreUploader(CancellableThrowingThread):
             f.close()
 
             if request['type'] == 'http':
-                u = urllib.request.urlopen(request['url'])
-                response = u.read()
-                jsono = path.join(scores_dir, request['identifier'] + '.jsono')
+                req = None
+                headers = {}
+                if 'headers' in request:
+                    headers = request['headers']
+
+                if request['method'] == 'POST' and 'payload' in request:
+                    log.debug(request['payload'])
+                    req = urllib.request.Request(request['url'], data=request['payload'].encode('utf-8'), headers=headers)
+                else:
+                    req = urllib.request.Request(request['url'], headers=headers)
+
+                try:
+                    u = urllib.request.urlopen(req)
+                    response = u.read()
+                except Exception as e:
+                    log.exception('Failed handling SM json: ' + str(e))
+                    response = ''.encode('utf-8')
+
+                jsono = path.join(scores_dir, str(request['identifier']) + '.jsono')
                 f = open(jsono, "wb")
                 f.write(response)
                 f.close()

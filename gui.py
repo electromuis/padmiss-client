@@ -5,11 +5,8 @@ Initial code from https://evileg.com/en/post/68/.
 """
 
 import io
-import logging, logging.handlers
-import os
-import queue
-import sys
-import configparser
+import logging, logging.handlers, os, queue, configparser
+
 import getpass
 from PyQt5.QtWidgets import QMainWindow, QApplication, QSystemTrayIcon, QMenu, QAction, QStyle, qApp, QFileDialog, QMessageBox, QInputDialog
 from PyQt5.QtCore import QThread, pyqtSignal, Qt
@@ -20,19 +17,9 @@ from config import PadmissConfig, ScannerConfig, DeviceConfig, getManager
 from hid import listDevices
 from daemon import PadmissDaemon
 from thread_utils import start_and_wait_for_threads
+from util import resource_path
 
 log = logging.getLogger(__name__)
-
-# from https://stackoverflow.com/a/51061279
-def resource_path(relative_path):
-    """ Get absolute path to resource, works for dev and for PyInstaller """
-    try:
-        # PyInstaller creates a temp folder and stores path in _MEIPASS
-        base_path = sys._MEIPASS
-    except Exception:
-        base_path = os.path.abspath(".")
-
-    return os.path.join(base_path, relative_path)
 
 #
 # Threads
@@ -205,6 +192,9 @@ class ConfigWindow(Ui_ConfigWindow, ConfigWindowBaseClass):
         self.configManager = getManager()
         self.mainWindow = mainWindow
 
+        icon = QtGui.QIcon(resource_path('icon.ico'))
+        self.setWindowIcon(icon)
+
         # Init buttons
         self.backup_dir_browse.clicked.connect(self.pickBackupDir)
         self.scores_dir_browse.clicked.connect(self.pickScoresDir)
@@ -225,6 +215,8 @@ class ConfigWindow(Ui_ConfigWindow, ConfigWindowBaseClass):
         self.backup_dir.setText(config.backup_dir)
         self.scores_dir.setText(config.scores_dir)
         self.hide_on_start.setChecked(config.hide_on_start)
+        # if config.webserver:
+        #     self.webserver.setChecked(config.webserver)
 
         self.deviceTabs.clear()
         for i, device in enumerate(config.devices):
@@ -257,6 +249,7 @@ class ConfigWindow(Ui_ConfigWindow, ConfigWindowBaseClass):
             backup_dir=self.backup_dir.text(),
             profile_dir_name=self.profile_dir_name.text(),
             hide_on_start=self.hide_on_start.isChecked(),
+            # webserver=self.webserver.isChecked(),
             devices=[self.deviceTabs.widget(index).getConfig() for index in range(self.deviceTabs.count())]
         )
 
@@ -329,7 +322,6 @@ class MainWindow(Ui_MainWindow, MainWindowBaseClass):
         getManager().changed.append(self.restartThreads)
 
         icon = QtGui.QIcon(resource_path('icon.ico'))
-
         self.setWindowIcon(icon)
 
         # Init log thread

@@ -1,6 +1,5 @@
 .*.sw?
 *.pyc
-*.spec
 build
 dist
 Backup

@@ -23,6 +23,12 @@ class DeviceConfig(BaseModel):
     config: Optional[ScannerConfig]
     fifo_config: Optional[FifoConfig]
 
+class RestConfig(BaseModel):
+    host: str
+    port: int
+    broadcast: bool
+    enabled: bool
+
 class PadmissConfig(BaseModel):
     padmiss_api_url: UrlStr
     api_key: str
@@ -30,6 +36,7 @@ class PadmissConfig(BaseModel):
     backup_dir: str
     profile_dir_name: str
     hide_on_start: bool
+    webserver: Optional[RestConfig]
     devices: List[DeviceConfig]
 
 class PadmissConfigManager(object):
@@ -59,6 +66,7 @@ class PadmissConfigManager(object):
             backup_dir=self._get_path_inside_padmiss_dir('backups'),
             profile_dir_name='StepMania 5',
             hide_on_start=False,
+            webserver=False,
             devices=[]
         )
 

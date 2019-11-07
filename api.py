@@ -145,20 +145,20 @@ class TournamentApi(object):
     def __init__(self, config):
         self.url = config.padmiss_api_url
         self.key = config.api_key
+        self.config = config
         self.graph = GraphQLClient(self.url + '/graphiql')
-        self.exUrl = 'https://electromuis1.openode.io'
 
     def broadcast(self):
         try:
             data = {
-                'token': self.key,
-                'ip': socket.gethostbyname(socket.gethostname())
+                'apiKey': self.key,
+                'ip': self.config.webserver.host + ":" + str(self.config.webserver.port)
             }
 
-            r = requests.post(self.exUrl + '/broadcast-cab', json=data)
+            r = requests.post(self.config.padmiss_api_url + 'api/arcade-cabs/broadcast', json=data)
 
             j = r.json()
-            if j['status'] != 'OK':
+            if j['success'] != True:
                 raise Exception('No ok status: ' + r.text)
 
             return True

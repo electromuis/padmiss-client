@@ -1,19 +1,13 @@
-import asyncio
 import websockets
-import time
-import json
+import time, json, config, socket, logging
+from mako.template import Template
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from thread_utils import CancellableThrowingThread
-import config
 from api import TournamentApi
-import socket
-
-import logging
+from fsr import fsrio
+from util import resource_path
 
 log = logging.getLogger(__name__)
-
-HOST_NAME = 'localhost'
-PORT_NUMBER = 9000
 
 class ServiceException(Exception):
     pass
@@ -21,7 +15,10 @@ class ServiceException(Exception):
 class RestServer(BaseHTTPRequestHandler):
     def do_HEAD(self):
         self.send_response(200)
-        self.send_header('Content-type', 'application/json')
+
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Content-Type', 'application/json')
+
         self.end_headers()
 
     def do_GET(self):
@@ -65,6 +62,24 @@ class RestServer(BaseHTTPRequestHandler):
                 resp['name'] = 'Padmiss daemon'
                 resp['version'] = '1.0'
                 resp['ip'] = socket.gethostbyname(socket.gethostname())
+            elif path == '/pads/list':
+                pads = []
+                i = 1
+
+                for p in fsrio.detectPads():
+                    pads.append({
+                        'side': p.side,
+                        'number': i,
+                        'port': p.port
+                    })
+                    i += 1
+
+                resp['pads'] = pads
+            elif path == '/pads/gui':
+                #todo output raw html
+                tpl = Template(file=resource_path('web/pad.html'))
+                resp = tpl.render()
+
             elif path == '/players':
                 players = {}
                 i = 1
@@ -117,6 +132,7 @@ class RestServer(BaseHTTPRequestHandler):
         content = json.dumps(resp)
 
         self.send_response(status_code)
+        self.send_header('Access-Control-Allow-Origin', '*')
         self.send_header('Content-Type', 'application/json')
         self.send_header('Content-Length', len(content))
         self.end_headers()
@@ -133,21 +149,21 @@ class RestServerThread(CancellableThrowingThread):
         super().__init__()
         self.setName('Rest server')
         self.pollers = pollers
-        self.api = TournamentApi(config.PadmissConfigManager().load_config())
+        self.config = config.PadmissConfigManager().load_config()
+        self.api = TournamentApi(self.config)
 
     def exc_run(self):
-        log.info("Starting Poller")
-
         RestServer.pollers = self.pollers
-        httpd = HTTPServer((HOST_NAME, PORT_NUMBER), RestServer)
+        httpd = HTTPServer((self.config.webserver.host, self.config.webserver.port), RestServer)
         lastPing = 0
 
         while not self.stop_event.wait(1):
             httpd.timeout = 2
             httpd.handle_request()
 
-            if time.time() > (lastPing + 25):
-                self.api.broadcast()
-                lastPing = time.time()
+            if self.config.webserver.broadcast:
+                if time.time() > (lastPing + 25):
+                    self.api.broadcast()
+                    lastPing = time.time()
 
         httpd.server_close()

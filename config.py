@@ -40,6 +40,9 @@ class PadmissConfigManager(object):
         return os.path.isfile(path)
 
     def __init__(self, custom_config_file_path=None):
+        if custom_config_file_path == None and os.path.exists(os.path.join('.', 'config.json')):
+            custom_config_file_path = os.path.join('.', 'config.json')
+
         self._custom_config_file_path = custom_config_file_path
 
     def _get_path_inside_padmiss_dir(self, *path):

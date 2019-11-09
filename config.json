@@ -26,7 +26,7 @@
                 "port_number": 2
             },
             "path": "/home/itg/.padmiss/player2",
-            "type": "scanner"
+            "type": "dummy"
         }
     ],
     "hide_on_start": false,

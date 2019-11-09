@@ -1,0 +1,36 @@
+{
+    "api_key": "8G705LUE53BB3OWCL1D0UUYHQCUVPDYK",
+    "backup_dir": "/home/itg/.padmiss/backups",
+    "webserver": {
+        "enabled": true,
+        "broadcast": true,
+        "host": "192.168.1.101",
+        "port": "8123"
+    },
+    "devices": [
+        {
+            "config": {
+                "bus": null,
+                "id_product": "0009",
+                "id_vendor": "08ff",
+                "port_number": 1
+            },
+            "path": "/home/itg/.padmiss/player1",
+            "type": "scanner"
+        },
+        {
+            "config": {
+                "bus": null,
+                "id_product": "0009",
+                "id_vendor": "08ff",
+                "port_number": 2
+            },
+            "path": "/home/itg/.padmiss/player2",
+            "type": "dummy"
+        }
+    ],
+    "hide_on_start": false,
+    "padmiss_api_url": "https://api.padmiss.com/",
+    "profile_dir_name": "StepMania 5",
+    "scores_dir": "/home/itg/stepmania51/Save/Padmiss"
+}

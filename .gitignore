@@ -8,3 +8,4 @@ Backup
 .vscode
 .venv
 venv
+config.json

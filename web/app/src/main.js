@@ -38,6 +38,10 @@ else {
   Vue.config.performance = false
 }
 
+if(typeof cabApiUrl !== 'undefined') {
+  config.cabBaseUrl = cabApiUrl
+}
+
 // Styles & Bootstrap
 // import "bootstrap/dist/css/bootstrap.min.css"
 // import "bootstrap-vue/dist/bootstrap-vue.css"

@@ -16,7 +16,6 @@ globalConfig = config.globalConfig
 class ServiceException(Exception):
     pass
 
-<<<<<<< HEAD
 class RestServer(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=DIRECTORY, **kwargs)
@@ -44,7 +43,7 @@ class RestServer(SimpleHTTPRequestHandler):
         if response == False:
             return super().do_GET()
 
-    def do_POST(self, request):
+    def do_POST(self):
         paths = {
             '/check_in': {'status': 200},
             '/check_out': {'status': 200}
@@ -76,6 +75,9 @@ class RestServer(SimpleHTTPRequestHandler):
                 resp['name'] = 'Padmiss daemon'
                 resp['version'] = '1.0'
                 resp['ip'] = globalConfig.webserver.host + ':' + str(globalConfig.webserver.port)
+            elif path == '/home':
+                tpl = Template(filename=resource_path('web/index.html'))
+                resp = tpl.render(cabApiUrl='http://' + globalConfig.webserver.host + ':' + str(globalConfig.webserver.port))
             elif path == '/pads/list':
                 pads = []
                 i = 1
@@ -130,7 +132,7 @@ class RestServer(SimpleHTTPRequestHandler):
                 resp['message'] = 'Checked in'
 
             elif path == '/check_out':
-                if data is None or not 'side' in data or not 'player' in data:
+                if data is None or not 'side' in data:
                     raise ServiceException('Side or player not provided')
 
                 side = int(data['side'])

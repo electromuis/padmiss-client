@@ -40,7 +40,7 @@ export default Vue.mixin({
     $cabClient() {
       if(client === null) {
         client = new ApiClientInstance({
-          baseURL: '',
+          baseURL: config.cabBaseUrl,
           timeout: 60000,
         })
       }

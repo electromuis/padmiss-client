@@ -222,7 +222,6 @@ class TournamentApi(object):
             docs {
               scoreValue
               originalScore
-              stepsInfo
               noteSkin
               playedAt
               modsTurn

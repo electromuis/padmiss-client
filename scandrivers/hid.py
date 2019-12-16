@@ -21,9 +21,9 @@ def listDevices():
     return ret
 
 class RFIDReader(scandrivers.driver.ScanDriver):
-    def __init__(self, config: DeviceConfig):
-        super(RFIDReader, self).__init__(config)
-        self.scannerConfig = config.scannerConfig
+    def __init__(self, config: DeviceConfig, poller):
+        super(RFIDReader, self).__init__(config, poller)
+        self.scannerConfig = config.config
 
         result = self.connect()
         if result == False:

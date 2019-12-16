@@ -4,10 +4,10 @@ block_cipher = None
 
 added_files = [
     ('icon.ico', '.'),
-    ('*.ui', '.'),
+    ('ui/*', 'ui'),
     ('*.dll', '.'),
-    ('zadig/*', 'zadig'),
-    ('web/*', 'web')
+    ('zadig/*', 'zadig')#,
+    #('web/*', 'web')
 ]
 
 

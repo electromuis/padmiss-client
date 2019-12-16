@@ -8,8 +8,6 @@ from new_poller import Poller
 from score_uploader import ScoreUploader
 from thread_utils import CancellableThrowingThread, start_and_wait_for_threads
 
-from util import construct_readers
-
 log = logging.getLogger(__name__)
 
 class PadmissDaemon(CancellableThrowingThread):
@@ -21,9 +19,16 @@ class PadmissDaemon(CancellableThrowingThread):
         config_manager = PadmissConfigManager()
         config = config_manager.load_config()
 
-        # initialize pollers
-        readers = construct_readers(config)
-        pollers = [Poller(config, side, reader) for side, reader in readers.items()]
+        readers = {}
+        for r in config.devices:
+            print(r.path)
+            if r.path not in readers:
+                readers[r.path] = []
+            readers[r.path].append(r)
+
+        pollers = []
+        for p,r in readers.items():
+            pollers.append(Poller(config, p, r))
 
         # initialize score uploader
         score_uploader = ScoreUploader(config, pollers)

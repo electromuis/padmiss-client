@@ -11,7 +11,7 @@ from PyQt5.QtWidgets import QApplication, QSystemTrayIcon, QMenu, QAction, qApp,
 from PyQt5.QtCore import QThread, pyqtSignal
 from PyQt5 import uic, QtGui
 
-from config import PadmissConfig, ScannerConfig, DeviceConfig, getManager
+from config import PadmissConfig, ScannerConfig, DeviceConfig, globalConfig, configManager
 from scandrivers.hid import listDevices
 from daemon import PadmissDaemon
 from thread_utils import start_and_wait_for_threads
@@ -60,10 +60,10 @@ class PadmissThread(QThread):
 # Windows & Widgets
 #
 
-Ui_MainWindow, MainWindowBaseClass = uic.loadUiType(resource_path('main-window.ui'))
-Ui_ConfigWindow, ConfigWindowBaseClass = uic.loadUiType(resource_path('config-window.ui'))
-Ui_DeviceConfigWidget, DeviceConfigWidgetBaseClass = uic.loadUiType(resource_path('device-config-widget.ui'))
-Ui_ScannerConfigWidget, ScannerConfigWidgetBaseClass = uic.loadUiType(resource_path('scanner-config-widget.ui'))
+Ui_MainWindow, MainWindowBaseClass = uic.loadUiType(resource_path('ui/main-window.ui'))
+Ui_ConfigWindow, ConfigWindowBaseClass = uic.loadUiType(resource_path('ui/config-window.ui'))
+Ui_DeviceConfigWidget, DeviceConfigWidgetBaseClass = uic.loadUiType(resource_path('ui/device-config-widget.ui'))
+Ui_ScannerConfigWidget, ScannerConfigWidgetBaseClass = uic.loadUiType(resource_path('ui/scanner-config-widget.ui'))
 
 class ScannerConfigWidget(Ui_ScannerConfigWidget, ScannerConfigWidgetBaseClass):
     def __init__(self, scanner: ScannerConfig):
@@ -187,7 +187,7 @@ class ConfigWindow(Ui_ConfigWindow, ConfigWindowBaseClass):
         ConfigWindowBaseClass.__init__(self)
         Ui_ConfigWindow.__init__(self)
         self.setupUi(self)
-        self.configManager = getManager()
+        self.configManager = configManager
         self.mainWindow = mainWindow
 
         icon = QtGui.QIcon(resource_path('icon.ico'))
@@ -317,7 +317,7 @@ class MainWindow(Ui_MainWindow, MainWindowBaseClass):
         MainWindowBaseClass.__init__(self)
         Ui_MainWindow.__init__(self)
         self.setupUi(self)
-        getManager().changed.append(self.restartThreads)
+        configManager.changed.append(self.restartThreads)
 
         icon = QtGui.QIcon(resource_path('icon.ico'))
         self.setWindowIcon(icon)
@@ -411,7 +411,7 @@ class MainWindow(Ui_MainWindow, MainWindowBaseClass):
             qApp.quit()
 
     def attemptShow(self):
-        self.configManager = getManager()
+        self.configManager = configManager
 
         def callBack():
             self.show()

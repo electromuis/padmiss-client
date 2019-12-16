@@ -6,12 +6,11 @@ from os import makedirs, path
 
 from config import DeviceConfig
 from api import TournamentApi, Player
-from new_poller import Poller
 
 log = logging.getLogger(__name__)
 
 class ScanDriver(object):
-    def __init__(self, config: DeviceConfig, poller: Poller):
+    def __init__(self, config: DeviceConfig, poller):
         self.config = config
         self.poller = poller
 

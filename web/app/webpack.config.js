@@ -33,7 +33,7 @@ module.exports = {
       {
         test: /\.js$/,
         loader: 'babel-loader',
-        exclude: /node_modules\/(?!(vue-form-generator|graphql-query-builder|crc)\/).*/
+        exclude: /node_modules\/(?!(vue-form-generator|graphql-query-builder|crc|padmiss-client)\/).*/
       },
       {
         test: /\.css$/,

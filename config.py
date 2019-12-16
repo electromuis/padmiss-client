@@ -120,5 +120,5 @@ class PadmissConfigManager(object):
         self._create_initial_directories_if_necessary()
         return PadmissConfig.parse_file(self._get_config_path())
 
-manager = PadmissConfigManager()
-globalConfig = manager.load_config()
+configManager = PadmissConfigManager()
+globalConfig = configManager.load_config()

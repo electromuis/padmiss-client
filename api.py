@@ -133,9 +133,26 @@ class ChartUpload(Base):
         'modsOther': None,
         'noteSkin': None,
         'perspective': None,
-        'timingWindows': TimingWindows
+        'timingWindows': TimingWindows,
+        'inputEvents': [],
+        'noteScoresWithBeats': []
     }
 
+class InputEvent(Base):
+    __fields__ = {
+        'beat': None,
+        'column': None,
+        'released': None
+    }
+
+class NoteScore(Base):
+    __fields__ = {
+        'beat': None,
+        'column': None,
+        'holdNoteScore': None,
+        'tapNoteScore': None,
+        'offset': None
+    }
 
 class TournamentApiError(Exception):
     pass
@@ -262,6 +279,11 @@ class TournamentApi(object):
         data.update(upload.score.scoreBreakdown.__dict__)
         data.update(upload.song.__dict__)
         data.update({k: v for k, v in upload.__dict__.items() if not isinstance(v, FlattenedBase)})
+
+        data['inputEvents'] = list(map(lambda e: e.__dict__, upload.inputEvents))
+        data['noteScoresWithBeats'] = list(map(lambda e: e.__dict__, upload.noteScoresWithBeats))
+
+
         dumpable = lambda v: v.__dict__ if isinstance(v, Base) else v
         r = requests.post(self.url + '/post-score', json={k: dumpable(v) for k, v in data.items() if v is not None})
         j = r.json()

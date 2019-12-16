@@ -14,12 +14,14 @@ from time import sleep
 from xml.etree import ElementTree
 import urllib.request, urllib.error, urllib.parse
 
-from api import TournamentApi, ScoreBreakdown, Score, Song, ChartUpload, TimingWindows
+from api import TournamentApi, ScoreBreakdown, Score, Song, ChartUpload, TimingWindows, InputEvent, NoteScore
 from thread_utils import CancellableThrowingThread
 
 log = logging.getLogger(__name__)
+text_by_attr = lambda parent, attr: parent.attrib[attr]
+bool_by_attr = lambda parent, attr: bool(parent.attrib[attr] == '1')
 text_by_xpath = lambda parent, xpath: parent.find(xpath).text
-bool_by_xpath = lambda parent, xpath: parent.find(xpath).text == '1'
+bool_by_xpath = lambda parent, xpath: bool(parent.find(xpath).text == '1')
 
 def xpath_items(root, items, mapper):
     return { typ: mapper(text_by_xpath(root, path)) for typ, path in items.items() }
@@ -127,6 +129,21 @@ def parse_timing_windows(root):
     }
     return TimingWindows(**xpath_items(root, window_to_path, lambda x: float(x)))
 
+def parse_input_events(root):
+    return list(map(lambda e: InputEvent(
+        beat      = float(text_by_attr(e, 'Beat')),
+        column    = int(text_by_attr(e, 'Col')),
+        released  = bool_by_attr(e, 'Released')
+    ), root.findall('InputEvents/InputEvent')))
+
+def parse_note_scores(root):
+    return list(map(lambda e: NoteScore(
+        beat=float(text_by_attr(e, 'Beat')),
+        column=int(text_by_attr(e, 'Col')),
+        holdNoteScore=text_by_attr(e, 'HoldNoteScore'),
+        tapNoteScore=text_by_attr(e, 'TapNoteScore'),
+        offset=float(text_by_attr(e, 'Offset'))
+    ), root.findall('NoteScoresWithBeatPosition/NoteScore')))
 
 conv_toggle_mod = lambda mod: mod.tag
 conv_float_mod = lambda mod: dict(name=mod.tag, value=float(mod.text))
@@ -134,24 +151,27 @@ conv_float_mod = lambda mod: dict(name=mod.tag, value=float(mod.text))
 
 def parse_upload(root):
     upload = ChartUpload(
-            hash          = text_by_xpath(root, 'Steps/Hash'),
-            meter         = int(text_by_xpath(root, 'Steps/Meter')),
-            playMode      = parse_playmode(root),
-            stepData      = text_by_xpath(root, 'Steps/StepData'),
-            stepArtist    = text_by_xpath(root, 'Steps/StepArtist'),
-            song          = parse_song(root),
-            score         = parse_score(root),
-            group         = text_by_xpath(root, 'Steps/Group'),
-            cabSide       = parse_cabside(root),
-            speedMod      = parse_speedmod(root),
-            musicRate     = float(text_by_xpath(root, 'Mods/MusicRate')),
-            modsTurn      = parse_mods(root, ('Mods/Turns',), conv_toggle_mod),
-            modsTransform = parse_mods(root, ('Mods/Transforms',), conv_toggle_mod),
-            modsOther     = parse_mods(root, ('Mods/Accels', 'Mods/Effects', 'Mods/Appearances', 'Mods/Scrolls'), conv_float_mod),
-            noteSkin      = text_by_xpath(root, 'Mods/NoteSkin'),
-            perspective   = parse_perspective(root),
-            timingWindows = parse_timing_windows(root)
+            hash                    = text_by_xpath(root, 'Steps/Hash'),
+            meter                   = int(text_by_xpath(root, 'Steps/Meter')),
+            playMode                = parse_playmode(root),
+            stepData                = text_by_xpath(root, 'Steps/StepData'),
+            stepArtist              = text_by_xpath(root, 'Steps/StepArtist'),
+            song                    = parse_song(root),
+            score                   = parse_score(root),
+            group                   = text_by_xpath(root, 'Steps/Group'),
+            cabSide                 = parse_cabside(root),
+            speedMod                = parse_speedmod(root),
+            musicRate               = float(text_by_xpath(root, 'Mods/MusicRate')),
+            modsTurn                = parse_mods(root, ('Mods/Turns',), conv_toggle_mod),
+            modsTransform           = parse_mods(root, ('Mods/Transforms',), conv_toggle_mod),
+            modsOther               = parse_mods(root, ('Mods/Accels', 'Mods/Effects', 'Mods/Appearances', 'Mods/Scrolls'), conv_float_mod),
+            noteSkin                = text_by_xpath(root, 'Mods/NoteSkin'),
+            perspective             = parse_perspective(root),
+            timingWindows           = parse_timing_windows(root),
+            inputEvents             = parse_input_events(root),
+            noteScoresWithBeats     = parse_note_scores(root)
             )
+
     return upload
 
 
@@ -176,11 +196,11 @@ class ScoreUploader(CancellableThrowingThread):
             root = ElementTree.parse(fn).getroot()
             upload = parse_upload(root)
 
-            total = upload.score.fantastics + \
-                    upload.score.excellents + \
-                    upload.score.greats + \
-                    upload.score.decents + \
-                    upload.score.wayoffs
+            total = upload.score.scoreBreakdown.fantastics + \
+                    upload.score.scoreBreakdown.excellents + \
+                    upload.score.scoreBreakdown.greats + \
+                    upload.score.scoreBreakdown.decents + \
+                    upload.score.scoreBreakdown.wayoffs
 
             if total == 0:
                 log.debug('Skipping empty score: ' + fn)

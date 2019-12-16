@@ -3,7 +3,7 @@
 import os
 import sys
 from scandrivers.hid import RFIDReader
-from config import PadmissConfig
+from config import DeviceConfig
 import logging, time
 log = logging.getLogger(__name__)
 
@@ -60,18 +60,16 @@ class NULLReader(object):
         log.debug('released')
 
 
-def construct_readers(config: PadmissConfig):
-    readers = {}
-    for device in config.devices:
-        if device.type == "scanner":
-            try:
-                readers[device.path] = RFIDReader(device)
-            except Exception as e:
-                log.debug('Failed constructing reader:')
-                log.debug(str(e))
-        elif device.type == "fifo":
-            readers[device.path] = FIFOReader(device.fifo_config)
-        elif device.type == "dummy":
-            readers[device.path] = NULLReader()
-#            readers[s["path"]] = NULLReader(**s["config"])
-    return readers
+def construct_reader(device: DeviceConfig, poller):
+    if device.type == "scanner":
+        try:
+            return RFIDReader(device, poller)
+        except Exception as e:
+            log.debug('Failed constructing reader:')
+            log.debug(str(e))
+    elif device.type == "fifo":
+        return FIFOReader(device.fifo_config)
+    elif device.type == "dummy":
+        return NULLReader()
+
+    return False

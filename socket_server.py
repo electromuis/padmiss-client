@@ -7,9 +7,10 @@ from api import TournamentApi
 from fsr import fsrio
 from util import resource_path
 from urllib.parse import urlparse, parse_qs
+import os
 
 log = logging.getLogger(__name__)
-DIRECTORY = resource_path('web')
+web_path = resource_path('web')
 
 globalConfig = config.globalConfig
 
@@ -18,7 +19,15 @@ class ServiceException(Exception):
 
 class RestServer(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, directory=DIRECTORY, **kwargs)
+        super().__init__(*args, **kwargs)
+
+        """This handler uses server.base_path instead of always using os.getcwd()"""
+
+    def translate_path(self, path):
+        path = SimpleHTTPRequestHandler.translate_path(self, path)
+        relpath = os.path.relpath(path, os.getcwd())
+        fullpath = os.path.join(web_path, relpath)
+        return fullpath
 
     def do_OPTIONS(self):
         self.send_response(200)
@@ -189,8 +198,8 @@ class RestServerThread(CancellableThrowingThread):
         httpd = HTTPServer((self.config.webserver.host, self.config.webserver.port), RestServer)
         lastPing = 0
 
-        while not self.stop_event.wait(1):
-            httpd.timeout = 2
+        while not self.stop_event.wait(0.5):
+            httpd.timeout = 0.5
             httpd.handle_request()
 
             if self.config.webserver.broadcast:

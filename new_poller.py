@@ -12,6 +12,8 @@ from os import path, makedirs, remove, unlink, system, makedirs
 from shutil import rmtree
 from threading import Thread
 from time import sleep
+from scandrivers.hid import RFIDReader
+from util import construct_reader
 
 if os.name != 'nt':
     from os import symlink
@@ -23,15 +25,22 @@ from thread_utils import CancellableThrowingThread
 log = logging.getLogger(__name__)
 
 class Poller(CancellableThrowingThread):
-    def __init__(self, config, profilePath, reader):
+    def __init__(self, config, profilePath, readers):
         super().__init__()
         self.setName('Poller')
         self.api = TournamentApi(config)
         self.config = config
         self.profilePath = profilePath
-        reader.poller = self
-        self.reader = reader
-        self.drivers = [reader]
+        self.readers = {}
+        self.drivers = []
+        self.reader = False
+
+        for r in readers:
+            self.readers[r.type] = construct_reader(r, self)
+            self.drivers.append(self.readers[r.type])
+            if r.type == 'scanner':
+                self.reader = self.readers[r.type]
+
         self.mounted = None
 
     def checkIn(self, player):
@@ -188,9 +197,3 @@ class Poller(CancellableThrowingThread):
                 log.exception('Error getting player info from server')
 
         self.reader.release()
-
-
-if __name__ == '__main__':
-    logging.basicConfig(level=logging.DEBUG)
-    # p = Player(_id="123123", nickname="test", metaData="{\"packs\":[\"http://dutchrhythm.com/dlm/[Electromuis] Hentai.zip\"]}")
-    # downloadPacks("C:\\dev\\stepmania\\Save\\test1", p)

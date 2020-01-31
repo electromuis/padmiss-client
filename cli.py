@@ -1,8 +1,8 @@
 import logging
 import time
 
-from daemon import PadmissDaemon
-from thread_utils import start_and_wait_for_threads
+from src.padmiss.daemon import PadmissDaemon
+from src.padmiss.thread_utils import start_and_wait_for_threads
 
 log = logging.getLogger(__name__)
 

@@ -3,11 +3,6 @@
 import binascii
 from os import path, makedirs
 from xml.etree.ElementTree import Element, SubElement, tostring, parse
-from api import TournamentApi
-from config import PadmissConfigManager
-
-from api import ScoreBreakdown, Score, Song, ChartUpload, TimingWindows
-
 
 class SLIni():
 	__fields__ = {
@@ -108,8 +103,9 @@ def generate_sl_ini(score):
 
 	return ini.write_string()
 
-def generate_profile(api, dirname, player):
-	makedirs(dirname)
+def generate_profile(dirname, player, api):
+	if not path.exists(dirname):
+		makedirs(dirname)
 
 	score = api.get_last_sore(player._id)
 
@@ -128,7 +124,6 @@ def generate_profile(api, dirname, player):
 		with open(path.join(dirname, 'Simply Love UserPrefs.ini'), 'w') as slini:
 			slini.write(ini)
 
-
 def parse_profile_scores(dirname):
 	tree = parse(path.join(dirname, 'Stats.xml'))
 	root = tree.getroot()
@@ -141,12 +136,3 @@ def parse_profile_scores(dirname):
 				print(score.find('PercentDP').text)
 				tns = score.find('TapNoteScores')
 				print(tns.find('HitMine').text)
-
-
-if __name__ == '__main__':
-	config = PadmissConfigManager().load_config()
-	api = TournamentApi(config)
-	score = api.get_last_sore('5ad12d9f07b73e108861bf9b')
-
-	ini = generate_sl_ini(score)
-	print(ini)

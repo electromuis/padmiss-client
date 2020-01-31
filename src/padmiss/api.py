@@ -8,7 +8,6 @@ from graphqlclient import GraphQLClient
 
 log = logging.getLogger(__name__)
 
-
 class Base(object):
     __repr_suppress__ = set()
 
@@ -289,49 +288,3 @@ class TournamentApi(object):
         j = r.json()
         if j['success'] != True:
             raise TournamentApiError(j['message'])
-
-
-if __name__ == '__main__':
-    import logging
-
-    logging.basicConfig(level=logging.DEBUG)
-    api = TournamentApi('http://localhost:3020', 've324mkvvk4k')
-    p = api.get_player(nickname='hippaheikki')
-    p = api.get_player(rfidUid='0014357364')
-    print(p)
-    if p:
-        print(api.get_player_highscores(p._id))
-    breakdown = ScoreBreakdown(
-        fantastics=10,
-        excellents=9,
-        greats=8,
-        decents=7,
-        wayoffs=6,
-        misses=5,
-        holds=4,
-        holdsTotal=6,
-        minesHit=0,
-        rolls=3,
-        rollsTotal=6
-    )
-    score = Score(scoreBreakdown=breakdown, scoreValue=99.9, passed=False)
-    song = Song(
-        title='kukkuu',
-        titleTransliteration=None,
-        subTitle='subi',
-        subTitleTransliteration=None,
-        artist='artisti maksaa',
-        artistTransliteration=None,
-        durationSeconds=123,
-    )
-    chart = ChartUpload(
-        hash=12345,
-        meter=12,
-        playMode='Single',
-        stepData='0010',
-        stepArtist='steppaaja',
-        song=song,
-        score=score,
-        cabSide='Left'
-    )
-    api.post_score(p, chart)

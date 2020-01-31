@@ -1,12 +1,11 @@
-from config import DeviceConfig
-import scandrivers
+from . import driver
 import os
 import string
 import glob
 from dirsync import sync
 
-class UsbDriverBase(scandrivers.driver.ScanDriver):
-    def __init__(self, config: DeviceConfig):
+class UsbDriverBase(driver.ScanDriver):
+    def __init__(self, config):
         super().__init__(config)
         self.drive = config.usb_config.hw_path
         self.lastFiles = []

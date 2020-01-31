@@ -10,7 +10,6 @@ added_files = [
     #('web/*', 'web')
 ]
 
-
 a = Analysis(['gui.py'],
              pathex=['.'],
              binaries=[],

@@ -6,8 +6,14 @@ import logging
 import time
 import os
 from pprint import pprint
-from config import PadmissConfig, ScannerConfig, DeviceConfig
-import scandrivers.driver
+
+from PyQt5.QtWidgets import QMessageBox
+from PyQt5 import uic, QtGui
+
+from src.padmiss.config.utils import setConfigToUi, getConfigFromUi, ReaderConfigBase
+from src.padmiss.util import resource_path
+from ..thread_utils import CancellableThrowingThread
+from . import driver
 
 log = logging.getLogger(__name__)
 
@@ -20,14 +26,59 @@ def listDevices():
         ret.append({'idVendor': vendor, 'idProduct': product, 'port_number': d.port_number, 'bus': d.bus})
     return ret
 
-class RFIDReader(scandrivers.driver.ScanDriver):
-    def __init__(self, config: DeviceConfig, poller):
-        super(RFIDReader, self).__init__(config, poller)
+class Reader(driver.ScanDriver, CancellableThrowingThread):
+    name = 'RFID Driver'
+
+    def __init__(self, config, poller):
+        super(Reader, self).__init__(config, poller)
+        self.threaded = True
         self.scannerConfig = config.config
 
         result = self.connect()
         if result == False:
-            raise RuntimeError('Not found')
+            raise RuntimeError('RFID Device not found')
+
+    def exc_run(self):
+        while not self.stop_event.wait(0.2):
+            try:
+                data = self.poll()
+                if data:
+                    data = data.strip()
+
+                    if data:
+                        self.togglePlayer(data, None)
+
+            except Exception:
+                log.exception('Error getting player info from server')
+
+        self.release()
+
+    def getPlayer(self, playerId):
+        p = self.poller.api.get_player(rfidUid=playerId)
+        if p:
+            p.driver = self
+            p.rfidUid = self
+            return p
+
+        return None
+
+    def handleAction(self, action):
+        # no in/out mode, which means always toggle
+        if not action.playerId:
+            return
+
+        if self.poller.mounted:
+            if self.poller.mounted.driver == self and self.poller.mounted.rfidUid == action.playerId:
+                self.checkOut()
+            else:
+                p = self.getPlayer(action.playerId)
+                if p:
+                    self.checkOut()
+                    self.checkIn(p)
+        else:
+            p = self.getPlayer(action.playerId)
+            if p:
+                self.checkIn(p)
 
     def _get_find_match(self):
         match = {}
@@ -91,7 +142,7 @@ class RFIDReader(scandrivers.driver.ScanDriver):
     def find(self):
         result = False
         while result == False:
-            time.sleep(5)
+            time.sleep(1)
             log.debug('Searching ...')
             try:
                 self.release()
@@ -184,21 +235,100 @@ class RFIDReader(scandrivers.driver.ScanDriver):
         else:
             return 'Bus %d device %d' % (self.dev.bus, self.dev.address)
 
+from typing import Optional
 
+class ReaderConfig(ReaderConfigBase):
+    id_vendor: str
+    id_product: str
+    port_number: Optional[int]
+    bus: Optional[int]
+
+    @classmethod
+    def emptyInstance(cls):
+        return ReaderConfig(id_vendor="", id_product="", enabled=False)
+
+configProp = 'config'
+
+Ui_ScannerConfigWidget, ScannerConfigWidgetBaseClass = uic.loadUiType(resource_path('ui/hid-config-widget.ui'))
+
+class ScannerConfigWidget(Ui_ScannerConfigWidget, ScannerConfigWidgetBaseClass):
+    def __init__(self, scanner: ReaderConfig):
+        ScannerConfigWidgetBaseClass.__init__(self)
+        self.setupUi(self)
+
+        setConfigToUi(self, scanner)
+        # setup
+        # self.idVendor.setText(scanner.id_vendor)
+        # self.idProduct.setText(scanner.id_product)
+        # self.portNumber.setText(str(scanner.port_number) if scanner.port_number is not None else "")
+        # self.bus.setText(str(scanner.bus) if scanner.bus is not None else "")
+
+        self.pickDeviceButton.clicked.connect(self.findScanner)
+
+    def getConfig(self):
+        ret = getConfigFromUi(self, ReaderConfig, {'type': 'scanner'})
+
+        return ret
+
+    def findScanner(self):
+        reply = QMessageBox.information(self, 'Padmiss', 'Make sure the device is disconnected')
+        devices = listDevices()
+        reply = QMessageBox.information(self, 'Padmiss', 'Plug the device in, and wait 5 seconds')
+        newDevices = listDevices()
+
+        new = [x for x in newDevices if x not in devices]
+        if not new:
+            reply = QMessageBox.information(self, 'Padmiss', 'Device not found')
+        else:
+            device = new[0]
+            self.idVendor.setText(device['idVendor'])
+            self.idProduct.setText(device['idProduct'])
+            self.portNumber.setText(str(device['port_number']))
+            self.bus.setText(str(device['bus']))
+
+            if os.name == 'nt':
+                reply = QMessageBox.question(self, 'Padmiss', 'Do you want to install the driver?', QMessageBox.Yes|QMessageBox.No, QMessageBox.No)
+                if reply == QMessageBox.Yes:
+                    QMessageBox.information(self, 'Padmiss',
+                                            'Select the device with USB ID: ' + device['idVendor'].upper() + ' ' +
+                                            device['idProduct'].upper() + ', then click Replace Driver')
+
+                    dir = resource_path('zadig') + '\\'
+                    tool = dir + 'zadig.exe'
+                    import ctypes, sys
+                    ctypes.windll.shell32.ShellExecuteW(None, "runas", tool, dir, dir, 1)
+            # else:
+            #     rulePath = '/etc/udev/rules.d/99-usbgroup'
+            #
+            #     if not os.path.isfile(rulePath):
+            #         reply = QMessageBox.question(self, 'Padmiss', 'Do you want to fix device permissions via udev?',
+            #                                      QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+            #         if reply == QMessageBox.Yes:
+            #             try :
+            #                 cmd = "echo 'SUBSYSTEM==\"usb\", ENV{DEVTYPE}==\"usb_device\", MODE=\"0664\", GROUP=\"usbusers\"' > " + rulePath
+            #                 password = False
+            #
+            #                 os.system(cmd)
+            #                 if not os.path.isfile(rulePath):
+            #                     password = QInputDialog.getText(self, 'Padmiss', 'Please enter your sudo password')
+            #                     if not password:
+            #                         raise Exception('No password entered')
+            #
+            #                     cmd = 'sudo -S ' + cmd
+            #                     os.popen(cmd, 'w').write(password)
+            #
+            #                     if not os.path.isfile(rulePath):
+            #                         raise Exception('wrong password?')
+            #
+            #
+            #
+            #
+            #             except Exception as e:
+            #                 QMessageBox.information(self, 'Padmiss', 'Failed: ' + str(e))
+
+#  Most of the time:
 #  idVendor           0x08ff AuthenTec, Inc.
 #  idProduct          0x0009 
 
 if __name__ == '__main__':
     pprint(listDevices())
-
-    r = RFIDReader(idVendor=0x08ff, idProduct=0x0009)
-
-    print('Starting read loop')
-    try:
-        while True:
-            data = r.poll()
-            if data:
-                print('poll result:')
-                print(data)
-    finally:
-        r.release()

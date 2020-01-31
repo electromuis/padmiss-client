@@ -1,18 +1,17 @@
 import websockets
-import time, json, config, socket, logging
+import time, json, socket, logging
 from mako.template import Template
 from http.server import BaseHTTPRequestHandler, HTTPServer, SimpleHTTPRequestHandler
-from thread_utils import CancellableThrowingThread
-from api import TournamentApi
-from fsr import fsrio
-from util import resource_path
+from .thread_utils import CancellableThrowingThread
+from .api import TournamentApi
+from .fsr import fsrio
+from .util import resource_path
 from urllib.parse import urlparse, parse_qs
 import os
 
 log = logging.getLogger(__name__)
 web_path = resource_path('web')
-
-globalConfig = config.globalConfig
+config = None
 
 class ServiceException(Exception):
     pass
@@ -22,6 +21,13 @@ class RestServer(SimpleHTTPRequestHandler):
         super().__init__(*args, **kwargs)
 
         """This handler uses server.base_path instead of always using os.getcwd()"""
+
+    def get_poller_driver(self, side):
+        if len(RestServer.pollers) < side or RestServer.pollers[side - 1].mounted:
+            raise ServiceException('Side not available')
+
+        poller = RestServer.pollers[side - 1]
+        return poller.getDriver('web')
 
     def translate_path(self, path):
         path = SimpleHTTPRequestHandler.translate_path(self, path)
@@ -83,10 +89,10 @@ class RestServer(SimpleHTTPRequestHandler):
             if path == '/info':
                 resp['name'] = 'Padmiss daemon'
                 resp['version'] = '1.0'
-                resp['ip'] = globalConfig.webserver.host + ':' + str(globalConfig.webserver.port)
+                resp['ip'] = config.webserver.host + ':' + str(config.webserver.port)
             elif path == '/home':
                 tpl = Template(filename=resource_path('web/index.html'))
-                resp = tpl.render(cabApiUrl='http://' + globalConfig.webserver.host + ':' + str(globalConfig.webserver.port))
+                resp = tpl.render(cabApiUrl='http://' + config.webserver.host + ':' + str(config.webserver.port))
             elif path == '/pads/list':
                 pads = []
                 i = 1
@@ -127,16 +133,14 @@ class RestServer(SimpleHTTPRequestHandler):
                     raise ServiceException('Side or player not provided')
 
                 side = int(data['side'])
-                if len(RestServer.pollers) < side or RestServer.pollers[side - 1].mounted:
+                driver = self.get_poller_driver(side)
+                if driver == None:
                     raise ServiceException('Side not available')
 
-                poller = RestServer.pollers[side - 1]
-                p = poller.api.get_player(playerId=data['player'])
-                if p:
-                    p.mountType = 'service'
-                    poller.processUser(p, 'service')
-                else:
-                    raise ServiceException('Player not found for: ' + data['player'])
+                try:
+                    driver.togglePlayer(data['player'], 'in')
+                except Exception as e:
+                    raise ServiceException(str(e))
 
                 resp['message'] = 'Checked in'
 
@@ -145,12 +149,15 @@ class RestServer(SimpleHTTPRequestHandler):
                     raise ServiceException('Side or player not provided')
 
                 side = int(data['side'])
-                if len(RestServer.pollers) < side:
+                driver = self.get_poller_driver(side)
+                if driver == None:
                     raise ServiceException('Side not available')
 
-                poller = RestServer.pollers[side - 1]
-                if poller.mounted:
-                    poller.processUser(None, 'card')
+                try:
+                    driver.togglePlayer(data['player'], 'out')
+                except Exception as e:
+                    raise ServiceException(str(e))
+
                 resp['message'] = 'Checked out'
 
             else:
@@ -186,20 +193,23 @@ class RestServer(SimpleHTTPRequestHandler):
 
 
 class RestServerThread(CancellableThrowingThread):
-    def __init__(self, pollers):
+    def __init__(self, pollers, setConfig):
+        self.pollers = pollers
+        config = setConfig
+        self.config = setConfig
+        self.api = TournamentApi(config)
+
         super().__init__()
         self.setName('Rest server')
-        self.pollers = pollers
-        self.config = globalConfig
-        self.api = TournamentApi(self.config)
 
     def exc_run(self):
+
         RestServer.pollers = self.pollers
         httpd = HTTPServer((self.config.webserver.host, self.config.webserver.port), RestServer)
         lastPing = 0
 
-        while not self.stop_event.wait(0.5):
-            httpd.timeout = 0.5
+        while not self.stop_event.wait(0.2):
+            httpd.timeout = 0.2
             httpd.handle_request()
 
             if self.config.webserver.broadcast:

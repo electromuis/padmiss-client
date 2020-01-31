@@ -14,14 +14,37 @@ from time import sleep
 from xml.etree import ElementTree
 import urllib.request, urllib.error, urllib.parse
 
-from api import TournamentApi, ScoreBreakdown, Score, Song, ChartUpload, TimingWindows, InputEvent, NoteScore
-from thread_utils import CancellableThrowingThread
+from src.padmiss.stepmania import Stepmania
+from .api import TournamentApi, ScoreBreakdown, Score, Song, ChartUpload, TimingWindows, InputEvent, NoteScore
+from .thread_utils import CancellableThrowingThread
+
+def text_by_xpath(parent, xpath):
+    e = parent.find(xpath)
+    if e:
+        return parent.find(xpath).text
+    else:
+        return ''
+
+def bool_by_xpath(parent, xpath):
+    e = parent.find(xpath)
+    if e:
+        return bool(parent.find(xpath).text == '1')
+    else:
+        return None
+
+def text_by_attr(parent, attr):
+    if attr in parent.attrib:
+        return parent.attrib[attr]
+    else:
+        return ''
+
+def bool_by_attr(parent, attr):
+    if attr in parent.attrib:
+        return bool(parent.attrib[attr] == '1')
+    else:
+        return None
 
 log = logging.getLogger(__name__)
-text_by_attr = lambda parent, attr: parent.attrib[attr]
-bool_by_attr = lambda parent, attr: bool(parent.attrib[attr] == '1')
-text_by_xpath = lambda parent, xpath: parent.find(xpath).text
-bool_by_xpath = lambda parent, xpath: bool(parent.find(xpath).text == '1')
 
 def xpath_items(root, items, mapper):
     return { typ: mapper(text_by_xpath(root, path)) for typ, path in items.items() }
@@ -280,9 +303,11 @@ class ScoreUploader(CancellableThrowingThread):
             return
 
         while not self.stop_event.wait(1):
-            if os.path.isdir(self._config.scores_dir):
-                for n in os.listdir(self._config.scores_dir):
-                    fn = path.join(self._config.scores_dir, n)
+            stepmania = Stepmania(self._config.stepmania_dir)
+
+            if stepmania.loaded == True:
+                for n in os.listdir(stepmania.padmiss):
+                    fn = path.join(stepmania.padmiss, n)
 
                     if n.endswith('.xml'):
                         self.handle_score(fn)

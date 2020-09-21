@@ -40,6 +40,7 @@ class Player(FlattenedBase):
     __fields__ = {
         'nickname': None,
         'shortNickname': '',
+		'avatarIconUrl': '',
         'rfidUid': '',
         '_id': None,
         'metaData': "{}",

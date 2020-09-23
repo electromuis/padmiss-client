@@ -4,7 +4,6 @@ import requests
 import json
 import logging
 import socket
-import numpy as np
 from graphqlclient import GraphQLClient
 
 log = logging.getLogger(__name__)
@@ -276,6 +275,8 @@ class TournamentApi(object):
         offset = 0
 
         while True:
+            print(left, offset)
+
             req = '''
             {
                Scores (limit: 100, offset: ''' + str(offset) + ''', sort: "-playedAt", queryString: ''' + json.dumps(json.dumps(filter)) + ''')"{

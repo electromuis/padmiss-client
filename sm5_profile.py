@@ -1,13 +1,9 @@
 #!/usr/bin/env python
 
 import binascii
-<<<<<<< HEAD
 import shutil
-=======
 import os
->>>>>>> 39535f0f976b8338df94ad3865dd5f4664d9892d
 from os import path, makedirs
-import os
 from xml.etree.ElementTree import Element, SubElement, tostring, parse
 from api import TournamentApi
 from config import PadmissConfigManager
@@ -98,28 +94,34 @@ def generate_statsxml(player, score):
         SubElement(modifiers, 'dance').text = ', '.join(mods)
 
     # Reading song history
-    cache = []
+    cache = {}
 
-    cachePath = path.join(config.globalConfig.scores_dir, '..', '..', 'Cache', 'Songs')
+    cachePath = path.join(config.scores_dir, '..', '..', 'Cache', 'Songs')
     if path.exists(cachePath):
         cached_files = map(lambda r : r.split('_'), os.listdir(cachePath))
-        cached_files = filter(lambda r : len(r) == 3)
+        cached_files = filter(lambda r : len(r) == 3, cached_files)
 
         for c in cached_files:
-            cache[c[0]][c[1]].append(c[2])
+            if c[1] not in cache:
+                cache[c[1]] = {}
+
+            cache[c[1]][c[2]] = c[0]
+
+    print(cache)
 
     if len(cache) > 0:
-        history = api.get_player_highscores(player._id)
-        scores = SubElement(stats, 'SongScores')
-
-        for h in history:
-            chart = h['stepChart']['stepData']
-            title = h['song']['title']
-            song = SubElement(scores, 'Song')
-            if 'Songs' in cache and h[title] in cache['Songs']:
-                pass
-
-            song.attrib['Dir'] = 'AdditionalSongs/Bass Chasers/Satellite (Sewerslvt Edit)/'
+        print('Fetching highscores')
+        # history = api.get_score_history(player._id)
+        # scores = SubElement(stats, 'SongScores')
+        #
+        # for h in history:
+        #     chart = h['stepChart']['stepData']
+        #     title = h['song']['title']
+        #     song = SubElement(scores, 'Song')
+        #     if 'Songs' in cache and h[title] in cache['Songs']:
+        #         pass
+        #
+        #     song.attrib['Dir'] = 'AdditionalSongs/Bass Chasers/Satellite (Sewerslvt Edit)/'
 
 
     return stats
@@ -180,23 +182,16 @@ def parse_profile_scores(dirname):
 
 
 if __name__ == '__main__':
-<<<<<<< HEAD
-	config = PadmissConfigManager().load_config()
-	api = TournamentApi(config)
-	player = api.get_player('5ad12d9f07b73e108861bf9b')
-
-	dir = path.join(path.dirname(path.realpath(__file__)), 'tmp')
-	if path.exists(dir):
-		shutil.rmtree(dir)
-
-	generate_profile(api, dir, player)
-
-
-=======
     config = PadmissConfigManager().load_config()
     api = TournamentApi(config)
-    score = api.get_last_sore('5ad12d9f07b73e108861bf9b')
+    print('Fetching player')
+    player = api.get_player('5ad12d9f07b73e108861bf9b')
 
-    ini = generate_sl_ini(score)
-    print(ini)
->>>>>>> 39535f0f976b8338df94ad3865dd5f4664d9892d
+    dir = path.join(path.dirname(path.realpath(__file__)), 'tmp')
+    if path.exists(dir):
+        shutil.rmtree(dir)
+
+    print('Generating profile')
+    generate_profile(api, dir, player)
+
+

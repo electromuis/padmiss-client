@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 
 import binascii
+import shutil
 from os import path, makedirs
+import os
 from xml.etree.ElementTree import Element, SubElement, tostring, parse
 from api import TournamentApi
 from config import PadmissConfigManager
@@ -146,7 +148,12 @@ def parse_profile_scores(dirname):
 if __name__ == '__main__':
 	config = PadmissConfigManager().load_config()
 	api = TournamentApi(config)
-	score = api.get_last_sore('5ad12d9f07b73e108861bf9b')
+	player = api.get_player('5ad12d9f07b73e108861bf9b')
 
-	ini = generate_sl_ini(score)
-	print(ini)
+	dir = path.join(path.dirname(path.realpath(__file__)), 'tmp')
+	if path.exists(dir):
+		shutil.rmtree(dir)
+
+	generate_profile(api, dir, player)
+
+

@@ -272,7 +272,7 @@ class TournamentApi(object):
 
             req = '''
             {
-               Scores (limit: 50, offset: ''' + str(offset) + ''', queryString: ''' + json.dumps(json.dumps(myFilter)) + ''')
+               Scores (limit: 10, sort: "-playedAt", offset: ''' + str(offset) + ''', queryString: ''' + json.dumps(json.dumps(myFilter)) + ''')
                {
                   totalDocs
                   docs {
@@ -295,10 +295,10 @@ class TournamentApi(object):
             else:
                 left = len(scoreResult['data']['Scores']['docs'])
                 scores += scoreResult['data']['Scores']['docs']
-                offset += 50
+                offset += 10
                 print("Loading score history: " + str(offset) + " / " + str(scoreResult['data']['Scores']['totalDocs']))
 
-            if left == 0 or offset > 300:
+            if left == 0 or offset > 100:
                 break
 
     #     populate songs
@@ -306,8 +306,12 @@ class TournamentApi(object):
         for score in scores:
             songs[score['stepChart']['_id']] = None
 
-        print('Populating stepchart data')
+        i = 0
+        num = len(songs.keys())
         for id in songs.keys():
+            print('Populating stepchart data: ' + str(i) + ' / ' + str(num))
+            i += 1
+
             req = '''{
                 Stepchart (id: "''' + id + '''")
                 {
@@ -322,7 +326,7 @@ class TournamentApi(object):
             }'''
             result = self.graph.execute(req)
             songs[id] = json.loads(result)['data']['Stepchart']
-            songs[id]['scores'] = list(filter(lambda s: s['stepChart']['_id'], scores))
+            songs[id]['scores'] = list(filter(lambda s: s['stepChart']['_id'] == id, scores))
 
         return songs
 

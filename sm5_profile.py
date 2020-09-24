@@ -4,6 +4,8 @@ import binascii
 import shutil
 import os
 import shutil
+import re
+
 from os import path, makedirs
 from xml.etree.ElementTree import Element, SubElement, tostring, parse
 from api import TournamentApi
@@ -103,11 +105,23 @@ def generate_statsxml(player, score):
         cached_files = filter(lambda r : len(r) == 3, cached_files)
 
         for c in cached_files:
+            title = False
+            regex = re.compile("\#TITLE:([^;]+);")
+
+            for i, line in enumerate(open(path.join(cachePath, '_'.join(c)))):
+                match = regex.findall(line)
+                if match:
+                    title = match[0]
+                    break
+
+            if not title:
+                continue
+
+
             if c[1] not in cache:
                 cache[c[1]] = {}
 
-
-            cache[c[1]][c[2]] = c[0]
+            cache[c[1]][title] = c[0]
 
         print("Cache loaded")
 
@@ -117,18 +131,42 @@ def generate_statsxml(player, score):
         scores = SubElement(stats, 'SongScores')
         print("History loaded: " + str(len(history)))
 
-        historyMap = {}
+        songElements = {}
 
         for id, step in history.items():
-            chart = step['stepData']
+            smChart = str(step['stepData'])
             title = step['song']['title']
 
             for group in step['groups']:
                 if group not in cache or title not in cache[group]:
+                    print('Missing: ' + group + ', ' + title)
+                    continue
+                else:
+                    print('Adding: ' + group + ', ' + title)
+
+                if group + title not in songElements:
+                    songElements[group + title] = SubElement(scores, 'Song')
+                    songElements[group + title].attrib['Dir'] = cache[group][title] + '/' + group + '/' + title + '/'
+
+                song = songElements[group + title]
+
+                regex = re.compile("\#NOTES:\n\s+([^:]+):\n\s+([^:]+):\n\s+([^:]+):\n\s+([^:]+):")
+                match = regex.findall(smChart)
+                print(match)
+                if not match:
                     continue
 
-                song = SubElement(scores, 'Song')
-                song.attrib['Dir'] = cache[group][title] + '/' + group + '/' + title + '/'
+                stepType, extra, difficulty, level = match[0]
+                chart = SubElement(song, 'Steps')
+                chart.attrib['Difficulty'] = difficulty
+                chart.attrib['StepsType'] = stepType
+
+                scoresElement = SubElement(chart, "HighScoreList")
+                for score in step['scores']:
+                    scoreElement = SubElement(scoresElement, "HighScore")
+                    SubElement(scoreElement, "Name").text = player.shortNickname
+                    SubElement(scoreElement, "PercentDP").text = str(score['scoreValue'])
+
 
     return stats
 

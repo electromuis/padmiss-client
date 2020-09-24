@@ -4,7 +4,6 @@ import requests
 import json
 import logging
 import socket
-import numpy as np
 from graphqlclient import GraphQLClient
 
 log = logging.getLogger(__name__)
@@ -226,13 +225,6 @@ class TournamentApi(object):
 
         return Player(**data['data']['Players']['docs'][0])
 
-    def get_player_highscores(self, playerId):
-        r = requests.get(self.url + '/api/players/%s/highscores' % playerId)
-        j = r.json()
-        if j['success'] != True:
-            raise TournamentApiError(j['message'])
-        return tuple((Score(**score) for score in j['highScores']))
-
     def get_last_sore(self, playerId):
         filter = {"player": playerId}
         req = '''
@@ -270,26 +262,23 @@ class TournamentApi(object):
         return None
 
     def get_score_history(self, playerId):
-        filter = {"player": playerId}
-        ret = []
+        myFilter = {"player": playerId}
         left = 0
         offset = 0
+        scores = []
 
         while True:
             req = '''
             {
-               Scores (limit: 100, offset: ''' + str(offset) + ''', sort: "-playedAt", queryString: ''' + json.dumps(json.dumps(filter)) + ''')"{
-                  "totalDocs",
-                  "docs"{
-                     "_id",
-                     "playedAt",
-                     "scoreValue",
-                     "stepChart"{
-                        "song"{
-                           "title",
-                           "artist"
-                        },
-                        "difficultyLevel"
+               Scores (limit: 50, offset: ''' + str(offset) + ''', queryString: ''' + json.dumps(json.dumps(myFilter)) + ''')
+               {
+                  totalDocs
+                  docs {
+                     _id
+                     playedAt
+                     scoreValue
+                     stepChart {
+                        _id
                      }
                   }
                }
@@ -297,19 +286,43 @@ class TournamentApi(object):
             '''
 
             result = self.graph.execute(req)
-            scores = json.loads(result)
+            scoreResult = json.loads(result)
 
-            if 'data' not in scores or not scores['data']['Scores']['docs']:
+            if 'data' not in scoreResult or not scoreResult['data']['Scores']['docs']:
                 left = 0
             else:
-                left = len(scores['data']['Scores']['docs'])
-                ret += scores['data']['Scores']['docs']
-                offset += 100
+                left = len(scoreResult['data']['Scores']['docs'])
+                scores += scoreResult['data']['Scores']['docs']
+                offset += 50
+                print("Loading score history: " + str(offset) + " / " + str(scoreResult['data']['Scores']['totalDocs']))
 
-            if left == 0:
-                return ret
-            else:
-                return ret
+            if left == 0 or offset > 300:
+                break
+
+    #     populate songs
+        songs = {}
+        for score in scores:
+            songs[score['stepChart']['_id']] = None
+
+        print('Populating stepchart data')
+        for id in songs.keys():
+            req = '''{
+                Stepchart (id: "''' + id + '''")
+                {
+                    song {
+                        title
+                        artist
+                    }
+                    groups
+                    difficultyLevel
+                    stepData
+                }
+            }'''
+            result = self.graph.execute(req)
+            songs[id] = json.loads(result)['data']['Stepchart']
+            songs[id]['scores'] = list(filter(lambda s: s['stepChart']['_id'], scores))
+
+        return songs
 
     def post_score(self, player, upload):
         data = {

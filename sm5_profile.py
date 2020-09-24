@@ -2,6 +2,7 @@
 
 import binascii
 import os
+import shutil
 from os import path, makedirs
 from xml.etree.ElementTree import Element, SubElement, tostring, parse
 from api import TournamentApi
@@ -93,29 +94,39 @@ def generate_statsxml(player, score):
         SubElement(modifiers, 'dance').text = ', '.join(mods)
 
     # Reading song history
-    cache = []
+    cache = {}
 
-    cachePath = path.join(config.globalConfig.scores_dir, '..', '..', 'Cache', 'Songs')
+    cachePath = path.join(config.scores_dir, '..', '..', 'Cache', 'Songs')
     if path.exists(cachePath):
         cached_files = map(lambda r : r.split('_'), os.listdir(cachePath))
-        cached_files = filter(lambda r : len(r) == 3)
+        cached_files = filter(lambda r : len(r) == 3, cached_files)
 
         for c in cached_files:
-            cache[c[0]][c[1]].append(c[2])
+            if c[1] not in cache:
+                cache[c[1]] = {}
+
+            cache[c[1]][c[2]] = c[0]
+
+        print("Cache loaded")
 
     if len(cache) > 0:
-        history = api.get_player_highscores(player._id)
+
+        history = api.get_score_history(player._id)
         scores = SubElement(stats, 'SongScores')
+        print("History loaded: " + str(len(history)))
 
-        for h in history:
-            chart = h['stepChart']['stepData']
-            title = h['song']['title']
-            song = SubElement(scores, 'Song')
-            if 'Songs' in cache and h[title] in cache['Songs']:
-                pass
+        historyMap = {}
 
-            song.attrib['Dir'] = 'AdditionalSongs/Bass Chasers/Satellite (Sewerslvt Edit)/'
+        for id, step in history.items():
+            chart = step['stepData']
+            title = step['song']['title']
 
+            for group in step['groups']:
+                if group not in cache or title not in cache[group]:
+                    continue
+
+                song = SubElement(scores, 'Song')
+                song.attrib['Dir'] = cache[group][title] + '/' + group + '/' + title + '/'
 
     return stats
 
@@ -177,7 +188,13 @@ def parse_profile_scores(dirname):
 if __name__ == '__main__':
     config = PadmissConfigManager().load_config()
     api = TournamentApi(config)
-    score = api.get_last_sore('5ad12d9f07b73e108861bf9b')
+    player = api.get_player('5ad12d9f07b73e108861bf9b')
+    score = api.get_last_sore(player._id)
 
-    ini = generate_sl_ini(score)
-    print(ini)
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+    profile = path.join(dir_path, 'tmp')
+
+    if path.exists(path.join(profile)):
+        shutil.rmtree(profile)
+
+    generate_profile(api, profile, player)

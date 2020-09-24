@@ -3,6 +3,7 @@
 import binascii
 import shutil
 import os
+import shutil
 from os import path, makedirs
 from xml.etree.ElementTree import Element, SubElement, tostring, parse
 from api import TournamentApi
@@ -105,24 +106,29 @@ def generate_statsxml(player, score):
             if c[1] not in cache:
                 cache[c[1]] = {}
 
+
             cache[c[1]][c[2]] = c[0]
 
-    print(cache)
+        print("Cache loaded")
 
     if len(cache) > 0:
-        print('Fetching highscores')
-        # history = api.get_score_history(player._id)
-        # scores = SubElement(stats, 'SongScores')
-        #
-        # for h in history:
-        #     chart = h['stepChart']['stepData']
-        #     title = h['song']['title']
-        #     song = SubElement(scores, 'Song')
-        #     if 'Songs' in cache and h[title] in cache['Songs']:
-        #         pass
-        #
-        #     song.attrib['Dir'] = 'AdditionalSongs/Bass Chasers/Satellite (Sewerslvt Edit)/'
 
+        history = api.get_score_history(player._id)
+        scores = SubElement(stats, 'SongScores')
+        print("History loaded: " + str(len(history)))
+
+        historyMap = {}
+
+        for id, step in history.items():
+            chart = step['stepData']
+            title = step['song']['title']
+
+            for group in step['groups']:
+                if group not in cache or title not in cache[group]:
+                    continue
+
+                song = SubElement(scores, 'Song')
+                song.attrib['Dir'] = cache[group][title] + '/' + group + '/' + title + '/'
 
     return stats
 
@@ -184,6 +190,7 @@ def parse_profile_scores(dirname):
 if __name__ == '__main__':
     config = PadmissConfigManager().load_config()
     api = TournamentApi(config)
+
     print('Fetching player')
     player = api.get_player('5ad12d9f07b73e108861bf9b')
 
@@ -193,5 +200,3 @@ if __name__ == '__main__':
 
     print('Generating profile')
     generate_profile(api, dir, player)
-
-

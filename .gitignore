@@ -9,3 +9,4 @@ Backup
 .venv
 venv
 config.json
+tmp

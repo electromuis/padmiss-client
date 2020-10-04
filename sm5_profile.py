@@ -173,11 +173,9 @@ def generate_statsxml(player, score):
 
 def generate_editableini(player):
     ini_template = \
-        '''
-        [Editable]
-        DisplayName={displayname}
-        LastUsedHighScoreName={shortname}
-        '''[1:]
+        '''[Editable]
+DisplayName={displayname}
+LastUsedHighScoreName={shortname}'''[1:]
     return ini_template.format(displayname=player.nickname, shortname=player.shortNickname)
 
 

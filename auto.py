@@ -14,7 +14,7 @@ from padmiss.daemon import PadmissDaemon
 from padmiss.thread_utils import start_and_wait_for_threads
 from padmiss import stepmania
 from padmiss.util import resource_path
-from padmiss.config import PadmissConfig, DeviceConfig
+from padmiss.config import PadmissConfig, DeviceConfig, PadmissConfigManager
 from padmiss.scandrivers import hid
 
 log = logging.getLogger(__name__)
@@ -123,15 +123,19 @@ def checkWinDrivers():
 
 def checkReaders():
     # Search for most common supported scanners
-    dev = list(usb.core.find(idVendor = 0x08FF, idProduct = 0x0009, find_all=True))
+    devices = list(usb.core.find(idVendor = 0x08FF, idProduct = 0x0009, find_all=True))
+    numDevices = len(devices)
 
-    if len(dev) > 0:
+    for d in devices:
+        usb.util.dispose_resources(d)
+
+    if numDevices > 0:
         if(confirm('Would you like to use the connected readers?')):
             if os.name == 'nt':
                 if not checkWinDrivers():
                     return False
 
-            return True
+            return numDevices
 
     return False
 
@@ -203,7 +207,7 @@ def checkEnvironment(currentPath):
 
     return preferences
 
-def run():
+def detectConfig():
     parser = argparse.ArgumentParser()
     parser.add_argument('--sm-dir', help='The root Stepmania folder to work from')
     parser.add_argument('--flip-readers', help='Swap P1 and P2 reader')
@@ -262,6 +266,17 @@ def run():
         devices = myDevices
     )
 
+    return detectedConfig
 
+log = logging.getLogger(__name__)
 
-run()
+if __name__ == '__main__':
+    config = detectConfig()
+
+    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(threadName)s - %(levelname)s: %(message)s')
+    padmiss_daemon = PadmissDaemon(config)
+
+    try:
+        start_and_wait_for_threads([padmiss_daemon])
+    except BaseException:
+        log.exception("Caught following while running daemon")

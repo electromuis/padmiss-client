@@ -11,6 +11,7 @@ log = logging.getLogger(__name__)
 class Poller(CancellableThrowingThread):
     def __init__(self, config, profilePath, readers, api):
         super().__init__()
+
         self.setName('Poller')
         self.api = api
         self.profilePath = profilePath

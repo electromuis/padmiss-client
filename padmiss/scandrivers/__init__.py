@@ -54,7 +54,7 @@ def construct_reader(device, poller):
         try:
             reader = drivers[type].Reader(device, poller)
         except Exception as e:
-            log.debug('Failed constructing:' + type + ', ' + str(e))
+            log.debug('Failed constructing:' + type + ', ' + str(e) + str(e.__traceback__))
             reader = False
     else:
         log.debug(drivers)

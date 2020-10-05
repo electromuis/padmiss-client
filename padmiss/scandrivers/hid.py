@@ -31,6 +31,8 @@ class Reader(driver.ScanDriver, CancellableThrowingThread):
 
     def __init__(self, config, poller):
         super(Reader, self).__init__(config, poller)
+        super(CancellableThrowingThread, self).__init__()
+
         self.threaded = True
         self.scannerConfig = config.config
 

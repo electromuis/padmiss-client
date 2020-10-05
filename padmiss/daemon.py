@@ -12,13 +12,18 @@ from .thread_utils import CancellableThrowingThread, start_and_wait_for_threads
 log = logging.getLogger(__name__)
 
 class PadmissDaemon(CancellableThrowingThread):
-    def __init__(self):
+    def __init__(self, config):
         super().__init__()
         self.setName(__name__)
+        self.config = config
 
     def exc_run(self):
-        config_manager = PadmissConfigManager()
-        config = config_manager.load_config()
+        if self.config:
+            config = self.config
+        else:
+            config_manager = PadmissConfigManager()
+            config = config_manager.load_config()
+
         api = TournamentApi(config)
 
         readers = {}

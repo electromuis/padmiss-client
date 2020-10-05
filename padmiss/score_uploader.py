@@ -14,7 +14,7 @@ from time import sleep
 from xml.etree import ElementTree
 import urllib.request, urllib.error, urllib.parse
 
-from src.padmiss.stepmania import Stepmania
+from padmiss.stepmania import Stepmania
 from .api import TournamentApi, ScoreBreakdown, Score, Song, ChartUpload, TimingWindows, InputEvent, NoteScore
 from .thread_utils import CancellableThrowingThread
 

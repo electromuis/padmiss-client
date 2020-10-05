@@ -10,8 +10,8 @@ from pprint import pprint
 from PyQt5.QtWidgets import QMessageBox
 from PyQt5 import uic, QtGui
 
-from src.padmiss.config.utils import setConfigToUi, getConfigFromUi, ReaderConfigBase
-from src.padmiss.util import resource_path
+from padmiss.config.utils import setConfigToUi, getConfigFromUi, ReaderConfigBase
+from padmiss.util import resource_path
 from ..thread_utils import CancellableThrowingThread
 from . import driver
 

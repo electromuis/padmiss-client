@@ -10,11 +10,17 @@ added_files = [
     #('web/*', 'web')
 ]
 
-a = Analysis(['gui.py'],
+a = Analysis(['auto.py'],
              pathex=['.'],
              binaries=[],
              datas=added_files,
-             hiddenimports=[],
+             hiddenimports=[
+                "padmiss.scandrivers.fifo",
+                "padmiss.scandrivers.fs",
+                "padmiss.scandrivers.hid",
+                "padmiss.scandrivers.usb",
+                "padmiss.scandrivers.web"
+             ],
              hookspath=[],
              runtime_hooks=[],
              excludes=[],
@@ -37,4 +43,4 @@ exe = EXE(pyz,
           upx=True,
           upx_exclude=[],
           runtime_tmpdir=None,
-          console=False , icon='icon.ico')
+          console=True , icon='icon.ico')

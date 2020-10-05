@@ -39,6 +39,7 @@ class Player(FlattenedBase):
     __fields__ = {
         'nickname': None,
         'shortNickname': '',
+		'avatarIconUrl': '',
         'rfidUid': '',
         '_id': None,
         'metaData': "{}",
@@ -223,13 +224,6 @@ class TournamentApi(object):
 
         return Player(**data['data']['Players']['docs'][0])
 
-    def get_player_highscores(self, playerId):
-        r = requests.get(self.url + '/api/players/%s/highscores' % playerId)
-        j = r.json()
-        if j['success'] != True:
-            raise TournamentApiError(j['message'])
-        return tuple((Score(**score) for score in j['highScores']))
-
     def get_last_sore(self, playerId):
         filter = {"player": playerId}
         req = '''
@@ -265,6 +259,75 @@ class TournamentApi(object):
             return scores['data']['Scores']['docs'][0]
 
         return None
+
+    def get_score_history(self, playerId):
+        myFilter = {"player": playerId}
+        left = 0
+        offset = 0
+        scores = []
+
+        while True:
+            print(left, offset)
+
+            req = '''
+            {
+               Scores (limit: 10, sort: "-playedAt", offset: ''' + str(offset) + ''', queryString: ''' + json.dumps(json.dumps(myFilter)) + ''')
+               {
+                  totalDocs
+                  docs {
+                     _id
+                     playedAt
+                     scoreValue
+                     stepChart {
+                        _id
+                     }
+                  }
+               }
+            }
+            '''
+
+            result = self.graph.execute(req)
+            scoreResult = json.loads(result)
+
+            if 'data' not in scoreResult or not scoreResult['data']['Scores']['docs']:
+                left = 0
+            else:
+                left = len(scoreResult['data']['Scores']['docs'])
+                scores += scoreResult['data']['Scores']['docs']
+                offset += 10
+                print("Loading score history: " + str(offset) + " / " + str(scoreResult['data']['Scores']['totalDocs']))
+
+            if left == 0 or offset > 100:
+                break
+
+    #     populate songs
+        songs = {}
+        for score in scores:
+            songs[score['stepChart']['_id']] = None
+
+        i = 0
+        num = len(songs.keys())
+        for id in songs.keys():
+            print('Populating stepchart data: ' + str(i) + ' / ' + str(num))
+            i += 1
+
+            req = '''{
+                Stepchart (id: "''' + id + '''")
+                {
+                    song {
+                        title
+                        artist
+                    }
+                    groups
+                    difficultyLevel
+                    stepData
+                }
+            }'''
+            result = self.graph.execute(req)
+            songs[id] = json.loads(result)['data']['Stepchart']
+            songs[id]['scores'] = list(filter(lambda s: s['stepChart']['_id'] == id, scores))
+
+        return songs
 
     def post_score(self, player, upload):
         data = {

@@ -2,6 +2,7 @@ from typing import Optional
 
 from pydantic import BaseModel, create_model
 import importlib
+import traceback
 
 drivers = {}
 
@@ -31,10 +32,7 @@ def loadConfigSchema():
             continue
 
         configProp = k + '_config'
-        if hasattr(module, 'configProp'):
-            configProp = getattr(module, 'configProp')
-        else:
-            drivers[k].configProp = configProp
+        drivers[k].configProp = configProp
 
         modelInfo[configProp] = module.ReaderConfig.emptyInstance()
 
@@ -56,6 +54,7 @@ def construct_reader(device, poller):
         except Exception as e:
             log.debug('Failed constructing:' + type + ', ' + str(e) + str(e.__traceback__))
             reader = False
+            traceback.print_exc()
     else:
         log.debug(drivers)
         log.debug('Unknown type:' + type)

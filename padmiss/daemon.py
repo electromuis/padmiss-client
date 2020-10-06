@@ -32,13 +32,17 @@ class PadmissDaemon(CancellableThrowingThread):
                 readers[r.path] = []
             readers[r.path].append(r)
 
+        threads = []
+
         pollers = []
         for p,r in readers.items():
-            pollers.append(Poller(config, p, r, api))
+            poller = Poller(config, p, r, api)
+            threads += poller.getThreads()
+            pollers.append(poller)
 
         # initialize score uploader
         score_uploader = ScoreUploader(config, pollers)
-        threads = pollers + [score_uploader]
+        threads = pollers + threads + [score_uploader]
 
         # initialize http servers
         if config.webserver and config.webserver.enabled:

@@ -30,11 +30,12 @@ class Reader(driver.ScanDriver, CancellableThrowingThread):
     name = 'RFID Driver'
 
     def __init__(self, config, poller):
-        super(Reader, self).__init__(config, poller)
-        super(CancellableThrowingThread, self).__init__()
+        self.intf = False
 
-        self.threaded = True
-        self.scannerConfig = config.config
+        CancellableThrowingThread.__init__(self)
+        driver.ScanDriver.__init__(self, config, poller)
+
+        self.scannerConfig = config.hid_config
 
         result = self.connect()
         if result == False:
@@ -66,19 +67,21 @@ class Reader(driver.ScanDriver, CancellableThrowingThread):
 
     def handleAction(self, action):
         # no in/out mode, which means always toggle
-        if not action.playerId:
+        if 'playerId' not in action:
             return
 
+        playerId = action['playerId']
+
         if self.poller.mounted:
-            if self.poller.mounted.driver == self and self.poller.mounted.rfidUid == action.playerId:
+            if self.poller.mounted.driver == self and self.poller.mounted.rfidUid == playerId:
                 self.checkOut()
             else:
-                p = self.getPlayer(action.playerId)
+                p = self.getPlayer(playerId)
                 if p:
                     self.checkOut()
                     self.checkIn(p)
         else:
-            p = self.getPlayer(action.playerId)
+            p = self.getPlayer(playerId)
             if p:
                 self.checkIn(p)
 
@@ -248,8 +251,6 @@ class ReaderConfig(ReaderConfigBase):
     @classmethod
     def emptyInstance(cls):
         return ReaderConfig(id_vendor="", id_product="", enabled=False)
-
-configProp = 'config'
 
 Ui_ScannerConfigWidget, ScannerConfigWidgetBaseClass = uic.loadUiType(resource_path('ui/hid-config-widget.ui'))
 

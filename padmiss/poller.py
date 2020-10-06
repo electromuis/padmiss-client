@@ -29,6 +29,9 @@ class Poller(CancellableThrowingThread):
             self.readers[r.type] = reader
             self.drivers.append(self.readers[r.type])
 
+    def getThreads(self):
+        return filter(lambda d: isinstance(d, CancellableThrowingThread), self.drivers)
+
     def getDriver(self, type):
         if type in self.readers:
             return self.readers[type]
@@ -36,19 +39,12 @@ class Poller(CancellableThrowingThread):
         return None
 
     def exc_run(self):
-        for d in self.drivers:
-            if isinstance(d, CancellableThrowingThread):
-                d.start()
-
-        while not self.stop_event.wait(1):
+        while not self.stop_event.wait(0.2):
             for d in self.drivers:
                 d.update()
 
         for d in self.drivers:
-            if isinstance(d, CancellableThrowingThread):
-                if d.is_alive():
-                    d.stop()
-                    d.join()
+            d.close()
 
     def unmount(self):
         if path.exists(self.profilePath):

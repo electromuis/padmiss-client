@@ -34,11 +34,11 @@ def askQuestion(question, options):
 
 def findBinary(searchPath):
     binary = path.join(searchPath, 'stepmania')
-    if path.exists(binary):
+    if path.exists(binary) and path.isfile(binary):
         return binary
 
     binary = path.join(searchPath, 'Program', 'StepMania.exe')
-    if path.exists(binary):
+    if path.exists(binary) and path.isfile(binary):
         return binary
 
     return False
@@ -85,7 +85,7 @@ def checkWinDrivers():
                 break
 
         if hasDrivers == False:
-            if(input("I noticed your readers don't have the correct drivers, would you like to install?") != 'y'):
+            if not confirm("I noticed your readers don't have the correct drivers, would you like to install?"):
                 return False
             else:
                 dir = resource_path('zadig') + '\\driver\\'
@@ -112,8 +112,6 @@ def checkWinDrivers():
                 return False
             else:
                 print('Driver installed')
-        else:
-            print('Driver already installed')
 
     except Exception as e:
         print(str(e))
@@ -200,6 +198,8 @@ def checkEnvironment(currentPath):
             print("I don't think this is a stepmania folder")
             return False
 
+    print('Binary found at: ' + binary)
+
     preferences = findPreferences(currentPath)
     if preferences == False:
         print("Couldn't find Preferences.ini, did you run the game at lease once?")
@@ -218,13 +218,13 @@ def detectConfig():
     elif getattr(sys, 'frozen', False):
         currentPath = path.dirname(sys.executable)
     else:
-        currentPath = path.dirname(__file__)
+        currentPath = path.dirname(os.path.realpath(__file__))
 
     print('Working from: ' + currentPath)
 
     preferences = checkEnvironment(currentPath)
     if not preferences:
-        return
+        return False
 
     print('Using preferences: ' + preferences)
 
@@ -232,7 +232,7 @@ def detectConfig():
 
     if not checkOptions(preferences, useReaders):
         print("Couldn't get Preferences in order")
-        return
+        return False
 
     apiKey = ''
 
@@ -248,8 +248,8 @@ def detectConfig():
                     path=path.join(path.dirname(preferences), 'PadmissProfileP' + i),
                     type='hid',
                     hid_config=hid.ReaderConfig(
-                        id_vendor=foundDevices[index].idVendor,
-                        id_product=foundDevices[index].idProduct,
+                        id_vendor=str(("%x" % foundDevices[index].idVendor).zfill(4)),
+                        id_product=str(("%x" % foundDevices[index].idProduct).zfill(4)),
                         port_number=foundDevices[index].port_number,
                         bus=foundDevices[index].bus
                     )
@@ -273,10 +273,11 @@ log = logging.getLogger(__name__)
 if __name__ == '__main__':
     config = detectConfig()
 
-    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(threadName)s - %(levelname)s: %(message)s')
-    padmiss_daemon = PadmissDaemon(config)
+    if config:
+        logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(threadName)s - %(levelname)s: %(message)s')
+        padmiss_daemon = PadmissDaemon(config)
 
-    try:
-        start_and_wait_for_threads([padmiss_daemon])
-    except BaseException:
-        log.exception("Caught following while running daemon")
+        try:
+            start_and_wait_for_threads([padmiss_daemon])
+        except BaseException:
+            log.exception("Caught following while running daemon")

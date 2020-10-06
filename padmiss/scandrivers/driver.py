@@ -15,7 +15,9 @@ class ScanDriver(object):
         self.config = config
         self.poller = poller
         self.actions = []
-        self.threaded = False
+
+    def close(self):
+        pass
 
     def togglePlayer(self, playerId, mode):
         self.actions.append({'playerId': playerId, 'mode': mode})

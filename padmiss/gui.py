@@ -11,7 +11,6 @@ from PyQt5.QtWidgets import QApplication, QSystemTrayIcon, QMenu, QAction, qApp,
 from PyQt5.QtCore import QThread, pyqtSignal
 from PyQt5 import uic, QtGui
 
-from padmiss.stepmania import Stepmania
 from .config import PadmissConfig, ScannerConfig, DeviceConfig, PadmissConfigManager
 from .config.utils import getConfigFromUi, setConfigToUi
 from .daemon import PadmissDaemon

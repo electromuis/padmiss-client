@@ -1,21 +1,39 @@
-language: python
-python:
-  - "3.7"
+language: bash
+
+addons:
+  apt:
+    sources:
+    - deadsnakes
+    packages:
+    - python3.7
+    - python3.7-dev
+
+os:
+  - linux
+  - windows
+
+before_install:
+  - if [ "$TRAVIS_OS_NAME" = "windows" ]; then choco install python --version 3.7.3 --x86 && export PATH=$PATH:/c/Python37/Scripts/ ; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then curl --silent --show-error --retry 5 https://bootstrap.pypa.io/get-pip.py | sudo python3.7 ; fi
 
 install:
   - pip install -r requirements.txt
-  - pip pyinstaller
 
-before_deploy:
-  - choco install zip
-  - zip Padmiss.zip dist/Padmiss
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then SKIP_CYTHON=1 pip install git+https://github.com/samuelcolvin/pydantic.git@v0.32 ; fi
+
+  - pip install pyinstaller
+
+#before_deploy:
+#  - zip Padmiss.zip dist/Padmiss
 
 script:
-  - /c/Python37/Scripts/pyinstaller nix.spec
+  - pyinstaller auto.spec
 
 deploy:
   provider: releases
   api_key: $GITHUB_TOKEN
-  file: "Padmiss.zip"
+  file:
+  - dist/Padmiss.exe
+  - dist/padmiss
   skip_cleanup: true
   draft: true

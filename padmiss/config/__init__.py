@@ -42,15 +42,16 @@ class RestConfig(BaseModel):
     enabled: bool
 
 class PadmissConfig(BaseModel):
-    padmiss_api_url: UrlStr
+    padmiss_api_url: Optional[UrlStr]
     api_key: str
-    scores_dir: str
+    use_readers: Optional[bool]
+    scores_dir: Optional[str]
     stepmania_dir: Optional[str]
     backup_dir: Optional[str]
-    profile_dir_name: str
+    profile_dir_name: Optional[str]
     hide_on_start: Optional[bool]
     webserver: Optional[RestConfig]
-    devices: List[DeviceConfig]
+    devices: Optional[List[DeviceConfig]]
 
 uis = {
     ScannerConfig: 'hid-config-widget.ui',
@@ -134,11 +135,12 @@ class PadmissConfigManager(object):
         path = self._get_config_path()
         return os.path.isfile(path)
 
-    def __init__(self, custom_config_file_path=None):
+    def __init__(self, custom_config_file_path=None, defaultDirs = True):
         if custom_config_file_path == None and os.path.exists(os.path.join('.', 'config.json')):
             custom_config_file_path = os.path.join('.', 'config.json')
 
         self._custom_config_file_path = custom_config_file_path
+        self.defaultDirs = defaultDirs
 
     def _get_path_inside_padmiss_dir(self, *path):
         if os.name == 'nt':
@@ -212,5 +214,7 @@ class PadmissConfigManager(object):
             f()
 
     def load_config(self):
-        self._create_initial_directories_if_necessary()
+        if self.defaultDirs:
+            self._create_initial_directories_if_necessary()
+
         return PadmissConfig.parse_file(self._get_config_path())

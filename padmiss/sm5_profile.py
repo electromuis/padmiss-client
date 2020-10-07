@@ -91,7 +91,7 @@ def generate_statsxml(player, score):
             mods.append(score['noteSkin'])
         SubElement(modifiers, 'dance').text = ', '.join(mods)
 
-    return
+    return stats
 
     # Reading song history
     cache = {}
@@ -169,10 +169,9 @@ def generate_statsxml(player, score):
 
 
 def generate_editableini(player):
-    ini_template = \
-        '''[Editable]
+    ini_template = '''[Editable]
 DisplayName={displayname}
-LastUsedHighScoreName={shortname}'''[1:]
+LastUsedHighScoreName={shortname}'''
     return ini_template.format(displayname=player.nickname, shortname=player.shortNickname)
 
 

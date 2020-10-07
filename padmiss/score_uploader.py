@@ -20,15 +20,17 @@ from .thread_utils import CancellableThrowingThread
 
 def text_by_xpath(parent, xpath):
     e = parent.find(xpath)
-    if e:
-        return parent.find(xpath).text
+
+    if e != None:
+        return e.text
     else:
         return ''
 
 def bool_by_xpath(parent, xpath):
     e = parent.find(xpath)
-    if e:
-        return bool(parent.find(xpath).text == '1')
+
+    if e != None:
+        return bool(e.text == '1')
     else:
         return None
 
@@ -173,6 +175,8 @@ conv_float_mod = lambda mod: dict(name=mod.tag, value=float(mod.text))
 
 
 def parse_upload(root):
+    print(text_by_xpath(root, 'PlayerName'))
+
     upload = ChartUpload(
             hash                    = text_by_xpath(root, 'Steps/Hash'),
             meter                   = int(text_by_xpath(root, 'Steps/Meter')),
@@ -219,6 +223,8 @@ class ScoreUploader(CancellableThrowingThread):
             root = ElementTree.parse(fn).getroot()
             upload = parse_upload(root)
 
+            print(upload)
+
             total = upload.score.scoreBreakdown.fantastics + \
                     upload.score.scoreBreakdown.excellents + \
                     upload.score.scoreBreakdown.greats + \
@@ -245,14 +251,15 @@ class ScoreUploader(CancellableThrowingThread):
 
         except:
             log.exception('Failed to upload score')
-            backupdir = self._config.backup_dir
+            if self._config.backup_dir:
+                backupdir = self._config.backup_dir
 
-            if not os.path.isdir(backupdir):
-                os.makedirs(backupdir)
+                if not os.path.isdir(backupdir):
+                    os.makedirs(backupdir)
 
-            backup = tempfile.mkstemp(suffix='.xml', prefix='failed_', dir=backupdir)[1]
-            shutil.copy(fn, backup)
-            log.debug('Backed up failed score to ' + backup)
+                backup = tempfile.mkstemp(suffix='.xml', prefix='failed_', dir=backupdir)[1]
+                shutil.copy(fn, backup)
+                log.debug('Backed up failed score to ' + backup)
 
         os.remove(fn)
 
@@ -301,17 +308,22 @@ class ScoreUploader(CancellableThrowingThread):
         if not self._config.scores_dir:
             log.warn('Scores directory is not set, not uploading scores')
             return
+        else:
+            log.debug('Reading score files from: ' + self._config.scores_dir)
 
         while not self.stop_event.wait(1):
-            stepmania = Stepmania(self._config.stepmania_dir)
+            # stepmania = Stepmania(self._config.stepmania_dir)
 
-            if stepmania.loaded == True:
-                for n in os.listdir(stepmania.padmiss):
-                    fn = path.join(stepmania.padmiss, n)
+            # if stepmania.loaded == True:
+            if not path.exists(self._config.scores_dir):
+                continue
 
-                    if n.endswith('.xml'):
-                        self.handle_score(fn)
+            for n in os.listdir(self._config.scores_dir):
+                fn = path.join(self._config.scores_dir, n)
 
-                    if n.endswith('.jsoni'):
-                        self.handle_json(fn)
+                if n.endswith('.xml'):
+                    self.handle_score(fn)
+
+                if n.endswith('.jsoni'):
+                    self.handle_json(fn)
 

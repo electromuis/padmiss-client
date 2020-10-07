@@ -160,10 +160,49 @@ class TournamentApiError(Exception):
 
 class TournamentApi(object):
     def __init__(self, config):
-        self.url = config.padmiss_api_url
-        self.key = config.api_key
+        if isinstance(config, str):
+            self.url = config
+        else:
+            self.url = config.padmiss_api_url
+            self.key = config.api_key
+
         self.config = config
         self.graph = GraphQLClient(self.url + '/graphiql')
+        self.auth = None
+
+    def authenticate(self, username, password):
+        r = requests.post(self.url + '/authenticate', json={
+            'email': username,
+            'password': password
+        })
+
+        j = r.json()
+
+        if j['success'] != True:
+            raise Exception('Authentication failed: ' + j['message'])
+
+        self.auth = j
+
+        return j
+
+    def register_cab(self, name):
+        if not self.auth:
+            raise Exception('You need to authenticate first')
+
+        r = requests.post(self.url + '/api/arcade-cabs/create', json={
+            'token': self.auth['token'],
+            'name': name
+        })
+
+        j = r.json()
+
+        if j['success'] != True:
+            raise Exception('Cab creation failed: ' + j['message'])
+
+        return j
+
+    def check_cab_token(self):
+        pass
 
     def broadcast(self):
         try:

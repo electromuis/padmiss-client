@@ -233,7 +233,7 @@ class PadmissStarter():
         if self.storedConfig:
             return self.storedConfig.api_key
 
-        token = input("Please enter your cab's API Key, leave empty to create: ")
+        token = input("\n\nPlease enter your cab's API Key, leave empty to create: ")
 
         if not token:
             auth = False
